@@ -1,0 +1,59 @@
+{
+  "generation": "2026-08-07T01:18:00Z-a6d1b8eeb43840a09be036e476c008e8",
+  "sources": {
+    "anyio": {
+      "canonical_base": "https://anyio.readthedocs.io/en/stable",
+      "github_repo": "agronholm/anyio",
+      "retrieved_at": "2026-08-07T01:18:00Z",
+      "sha": "c384f99687c64c59ed8a11c3a0f11a2d57daff71",
+      "tag": "4.14.2",
+      "tarball_url": "https://api.github.com/repos/agronholm/anyio/tarball/c384f99687c64c59ed8a11c3a0f11a2d57daff71",
+      "upstream_url": "https://github.com/agronholm/anyio"
+    },
+    "fastapi": {
+      "canonical_base": "https://fastapi.tiangolo.com",
+      "github_repo": "fastapi/fastapi",
+      "retrieved_at": "2026-08-07T01:18:00Z",
+      "sha": "95f8322ee1dcda7ceace7b1c4f6c9915b36d748f",
+      "tag": "0.141.1",
+      "tarball_url": "https://api.github.com/repos/fastapi/fastapi/tarball/95f8322ee1dcda7ceace7b1c4f6c9915b36d748f",
+      "upstream_url": "https://github.com/fastapi/fastapi"
+    },
+    "pydantic": {
+      "canonical_base": "https://docs.pydantic.dev/latest",
+      "github_repo": "pydantic/pydantic",
+      "retrieved_at": "2026-08-07T01:18:00Z",
+      "sha": "cf67d4b3193c3fe43ede18612ed62785eee11382",
+      "tag": "v2.13.4",
+      "tarball_url": "https://api.github.com/repos/pydantic/pydantic/tarball/cf67d4b3193c3fe43ede18612ed62785eee11382",
+      "upstream_url": "https://github.com/pydantic/pydantic"
+    },
+    "python-asyncio": {
+      "canonical_base": "https://docs.python.org/3/library",
+      "github_repo": "python/cpython",
+      "retrieved_at": "2026-08-07T01:18:00Z",
+      "sha": "823f0323ee6ec1402088b73bce1a38473cac36dc",
+      "tag": "v3.14.7",
+      "tarball_url": "https://api.github.com/repos/python/cpython/tarball/823f0323ee6ec1402088b73bce1a38473cac36dc",
+      "upstream_url": "https://github.com/python/cpython"
+    },
+    "starlette": {
+      "canonical_base": "https://www.starlette.io",
+      "github_repo": "Kludex/starlette",
+      "retrieved_at": "2026-08-07T01:18:00Z",
+      "sha": "9c5506205eeb358d94fc0963f501721f008b21bb",
+      "tag": "1.4.1",
+      "tarball_url": "https://api.github.com/repos/Kludex/starlette/tarball/9c5506205eeb358d94fc0963f501721f008b21bb",
+      "upstream_url": "https://github.com/Kludex/starlette"
+    },
+    "uvicorn": {
+      "canonical_base": "https://uvicorn.dev",
+      "github_repo": "Kludex/uvicorn",
+      "retrieved_at": "2026-08-07T01:18:00Z",
+      "sha": "ee8e45ca472db17b4aef1d539f209539062d002e",
+      "tag": "0.52.1",
+      "tarball_url": "https://api.github.com/repos/Kludex/uvicorn/tarball/ee8e45ca472db17b4aef1d539f209539062d002e",
+      "upstream_url": "https://github.com/Kludex/uvicorn"
+    }
+  }
+}

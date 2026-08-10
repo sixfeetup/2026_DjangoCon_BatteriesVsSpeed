@@ -1,0 +1,9 @@
+.worktrees/
+.research/corpus/
+.research/generations/
+.research/*.sqlite3
+.research/*.tmp
+.research/corpus.lock
+.pi/
+docs/superpowers/
+__pycache__/
