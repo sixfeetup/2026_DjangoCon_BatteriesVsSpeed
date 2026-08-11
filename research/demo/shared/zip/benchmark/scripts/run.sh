@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "Usage: bash scripts/run.sh <smoke|baseline|staircase|sustained|overload> <target-url>" >&2
+  exit 1
+}
+
+trim() {
+  printf '%s' "$1" | tr -d '\r'
+}
+
+require_value() {
+  local name="$1"
+  local value="$2"
+  if [ -z "$value" ]; then
+    echo "Missing required metadata value: $name" >&2
+    exit 1
+  fi
+
+  if [[ "$value" == *$'\n'* ]] || [[ "$value" == *$'\r'* ]]; then
+    echo "Invalid metadata value for $name: expected a single line" >&2
+    exit 1
+  fi
+
+  if [[ "$value" == Traceback* ]] || [[ "$value" == *PackageNotFoundError* ]] || [[ "$value" == *"No package metadata was found"* ]]; then
+    echo "Invalid metadata value for $name: $value" >&2
+    exit 1
+  fi
+}
+
+iso_utc_now() {
+  node -e "process.stdout.write(new Date().toISOString())"
+}
+
+write_metadata() {
+  local completed_at="$1"
+  METADATA_OUTPUT_PATH="$METADATA_PATH" \
+  RUN_ID_VALUE="$RUN_ID" \
+  STARTED_AT_VALUE="$STARTED_AT" \
+  COMPLETED_AT_VALUE="$completed_at" \
+  GIT_REVISION_VALUE="$GIT_REVISION" \
+  TARGET_VALUE="$TARGET" \
+  PROFILE_VALUE="$PROFILE" \
+  NODE_VERSION_VALUE="$NODE_VERSION" \
+  ARTILLERY_VERSION_VALUE="$ARTILLERY_VERSION" \
+  PYTHON_VERSION_VALUE="$PYTHON_VERSION_VALUE" \
+  APPLICATION_VERSION_VALUE="$APPLICATION_VERSION_VALUE" \
+  FRAMEWORK_VERSION_VALUE="$FRAMEWORK_VERSION_VALUE" \
+  SERVER_VERSION_VALUE="$SERVER_VERSION_VALUE" \
+  REDIS_VERSION_VALUE="$REDIS_VERSION_VALUE" \
+  EFFECTIVE_PHASES_VALUE="$EFFECTIVE_PHASES" \
+  EXECUTION_MODE_VALUE="host" \
+  node <<'NODE' | node "$SCRIPT_DIR/write-metadata.mjs" "$METADATA_PATH"
+const metadata = {
+  run_id: process.env.RUN_ID_VALUE,
+  started_at: process.env.STARTED_AT_VALUE,
+  completed_at: process.env.COMPLETED_AT_VALUE || null,
+  git_revision: process.env.GIT_REVISION_VALUE,
+  target: process.env.TARGET_VALUE,
+  profile: process.env.PROFILE_VALUE,
+  node_version: process.env.NODE_VERSION_VALUE,
+  artillery_version: process.env.ARTILLERY_VERSION_VALUE,
+  python_version: process.env.PYTHON_VERSION_VALUE,
+  application_version: process.env.APPLICATION_VERSION_VALUE,
+  framework_version: process.env.FRAMEWORK_VERSION_VALUE,
+  server_version: process.env.SERVER_VERSION_VALUE,
+  redis_version: process.env.REDIS_VERSION_VALUE,
+  effective_phases: JSON.parse(process.env.EFFECTIVE_PHASES_VALUE),
+  execution_mode: process.env.EXECUTION_MODE_VALUE
+}
+process.stdout.write(JSON.stringify(metadata))
+NODE
+}
+
+if [ "${1:-}" = "--" ]; then
+  shift
+fi
+
+PROFILE="${1:-}"
+TARGET="${2:-}"
+if [ -z "$PROFILE" ] || [ -z "$TARGET" ]; then
+  usage
+fi
+
+if [ "$PROFILE" = "overload" ] && [ "${ENABLE_OVERLOAD:-0}" != "1" ]; then
+  echo "Refusing overload run unless ENABLE_OVERLOAD=1" >&2
+  exit 1
+fi
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+BENCHMARK_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd -P)"
+RESULTS_DIR="$BENCHMARK_DIR/results"
+TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+RUN_ID="${RUN_ID:-${TIMESTAMP}-${PROFILE}}"
+RESULT_DIR="$RESULTS_DIR/$RUN_ID"
+CONFIG_PATH="$RESULT_DIR/config.json"
+RAW_PATH="$RESULT_DIR/raw.json"
+METADATA_PATH="$RESULT_DIR/metadata.json"
+COMPOSE_FILE="$(cd -- "$BENCHMARK_DIR" && realpath ../../../fastapi/zip/compose.yaml)"
+mkdir -p "$RESULT_DIR"
+
+node "$SCRIPT_DIR/render-config.mjs" "$PROFILE" "$TARGET" "$CONFIG_PATH"
+
+STARTED_AT="$(iso_utc_now)"
+GIT_REVISION="${GIT_REVISION:-$(git -C "$BENCHMARK_DIR" rev-parse HEAD)}"
+EFFECTIVE_PHASES="$(node -e "const fs = require('node:fs'); const config = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(JSON.stringify(config.config.phases));" "$CONFIG_PATH")"
+NODE_VERSION="$(trim "$(node --version)")"
+
+if [ -n "${PYTHON_VERSION:-}" ]; then
+  PYTHON_VERSION_VALUE="$(trim "$PYTHON_VERSION")"
+else
+  PYTHON_VERSION_VALUE="$(trim "$(docker compose -f "$COMPOSE_FILE" exec -T api python --version 2>&1)")"
+fi
+
+if [ -n "${ZIP_API_VERSION:-}" ]; then
+  APPLICATION_VERSION_VALUE="$(trim "$ZIP_API_VERSION")"
+else
+  APPLICATION_VERSION_VALUE="$(trim "$(docker compose -f "$COMPOSE_FILE" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("zip-api"))' 2>&1)")"
+fi
+
+if [ -n "${FASTAPI_VERSION:-}" ]; then
+  FRAMEWORK_VERSION_VALUE="$(trim "$FASTAPI_VERSION")"
+else
+  FRAMEWORK_VERSION_VALUE="$(trim "$(docker compose -f "$COMPOSE_FILE" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("fastapi"))' 2>&1)")"
+fi
+
+if [ -n "${UVICORN_VERSION:-}" ]; then
+  SERVER_VERSION_VALUE="$(trim "$UVICORN_VERSION")"
+else
+  SERVER_VERSION_VALUE="$(trim "$(docker compose -f "$COMPOSE_FILE" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("uvicorn"))' 2>&1)")"
+fi
+
+if [ -n "${REDIS_VERSION:-}" ]; then
+  REDIS_VERSION_VALUE="$(trim "$REDIS_VERSION")"
+else
+  REDIS_VERSION_VALUE="$(trim "$(docker compose -f "$COMPOSE_FILE" exec -T redis redis-server --version 2>&1)")"
+fi
+
+require_value "git_revision" "$GIT_REVISION"
+require_value "node_version" "$NODE_VERSION"
+require_value "python_version" "$PYTHON_VERSION_VALUE"
+require_value "application_version" "$APPLICATION_VERSION_VALUE"
+require_value "framework_version" "$FRAMEWORK_VERSION_VALUE"
+require_value "server_version" "$SERVER_VERSION_VALUE"
+require_value "redis_version" "$REDIS_VERSION_VALUE"
+
+ARTILLERY_VERSION="$(corepack pnpm exec artillery --version | awk -F': +' '/^Artillery:/ {print $2}')"
+ARTILLERY_VERSION="$(trim "$ARTILLERY_VERSION")"
+require_value "artillery_version" "$ARTILLERY_VERSION"
+
+write_metadata ""
+
+set +e
+corepack pnpm exec artillery run --output "$RAW_PATH" "$CONFIG_PATH"
+ARTILLERY_STATUS=$?
+set -e
+
+write_metadata "$(iso_utc_now)"
+
+echo "$RESULT_DIR"
+exit "$ARTILLERY_STATUS"

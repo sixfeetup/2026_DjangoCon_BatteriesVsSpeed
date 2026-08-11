@@ -1,0 +1,23 @@
+{
+  "smoke": [
+    {"duration": 10, "arrivalRate": 1}
+  ],
+  "baseline": [
+    {"duration": 60, "arrivalRate": 5}
+  ],
+  "staircase": [
+    {"duration": 20, "arrivalRate": 10, "name": "warm-up"},
+    {"duration": 45, "arrivalRate": 25},
+    {"duration": 45, "arrivalRate": 50},
+    {"duration": 45, "arrivalRate": 100},
+    {"duration": 45, "arrivalRate": 200},
+    {"duration": 45, "arrivalRate": 400},
+    {"duration": 45, "arrivalRate": 800}
+  ],
+  "sustained": [
+    {"duration": 300, "arrivalRate": 200}
+  ],
+  "overload": [
+    {"duration": 30, "arrivalRate": 1200}
+  ]
+}

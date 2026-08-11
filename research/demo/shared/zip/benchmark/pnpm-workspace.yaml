@@ -1,0 +1,4 @@
+allowBuilds:
+  '@playwright/browser-chromium': false
+  protobufjs: false
+  unix-dgram: false
