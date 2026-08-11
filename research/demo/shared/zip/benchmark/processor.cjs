@@ -1,19 +1,29 @@
 const zipPattern = /^[0-9]{5}$/
 
-function requestedPrefix(context) {
-  const prefix = context?.vars?.q
+function requestedPrefix(requestParams, context) {
+  let prefix
+  if (typeof requestParams?.url === 'string') {
+    try {
+      prefix = new URL(requestParams.url, 'http://artillery.invalid').searchParams.get('q')
+    } catch {
+      throw new Error('Artillery request URL must contain the requested ASCII ZIP prefix')
+    }
+  } else {
+    prefix = context?.vars?.q
+  }
+
   if (typeof prefix !== 'string' || !/^[0-9]{1,5}$/.test(prefix)) {
-    throw new Error('Artillery context must contain the requested ASCII ZIP prefix')
+    throw new Error('Artillery request must contain the requested ASCII ZIP prefix')
   }
   return prefix
 }
 
-function validateZipResponse(_requestParams, response, context) {
+function validateZipResponse(requestParams, response, context) {
   if (!response || response.statusCode !== 200) {
     throw new Error(`Expected HTTP 200, received ${response?.statusCode ?? 'unknown'}`)
   }
 
-  const prefix = requestedPrefix(context)
+  const prefix = requestedPrefix(requestParams, context)
   let payload
   try {
     payload = JSON.parse(response.body)

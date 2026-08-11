@@ -340,6 +340,21 @@ test('response callback accepts valid payload without emitting an invalid counte
   assert.deepEqual(nextCalls, [[]])
 })
 
+test('response callback reads the requested prefix from Artillery request parameters', () => {
+  const emissions = []
+  const nextCalls = []
+  processor.assertZipResponse(
+    {url: 'http://localhost:8000/zip-codes?q=123'},
+    {statusCode: 200, body: zipResponseBody()},
+    {vars: {}},
+    {emit: (...args) => emissions.push(args)},
+    (...args) => nextCalls.push(args)
+  )
+
+  assert.deepEqual(emissions, [])
+  assert.deepEqual(nextCalls, [[]])
+})
+
 test('response callback emits invalid counter and passes validation error to next', () => {
   const emissions = []
   const nextCalls = []
