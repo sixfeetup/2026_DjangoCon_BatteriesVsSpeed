@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from zip_data import dataset as dataset_module
 from zip_data.dataset import (
     DatasetVerificationError,
     generate_dataset,
@@ -44,6 +45,23 @@ def test_full_dataset_and_prefix_corpus_satisfy_contract(tmp_path: Path) -> None
         prefixes = [row["q"] for row in csv.DictReader(stream)]
     assert len(prefixes) == len(set(prefixes)) == 100
     assert all(sum(value.startswith(prefix) for value in zips) >= 10 for prefix in prefixes)
+
+
+def test_verifier_accepts_non_default_seed(tmp_path: Path) -> None:
+    manifest = generate_dataset(tmp_path, seed=12345, count=500)
+
+    verified = verify_dataset(tmp_path)
+
+    assert verified == manifest
+
+
+def test_verifier_ignores_runtime_faker_version_lookup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    manifest = generate_dataset(tmp_path, count=500)
+    monkeypatch.setattr(dataset_module, "version", lambda package: "999.999.999")
+
+    verified = verify_dataset(tmp_path)
+
+    assert verified == manifest
 
 
 def test_verifier_rejects_modified_artifact(tmp_path: Path) -> None:

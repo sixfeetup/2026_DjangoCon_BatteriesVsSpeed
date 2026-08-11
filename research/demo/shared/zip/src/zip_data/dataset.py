@@ -231,10 +231,6 @@ def verify_dataset(output_dir: Path) -> DatasetManifest:
         raise DatasetVerificationError("manifest schema version mismatch")
     if manifest.generator_version != GENERATOR_VERSION:
         raise DatasetVerificationError("manifest generator version mismatch")
-    if manifest.seed != SEED:
-        raise DatasetVerificationError("manifest seed mismatch")
-    if manifest.faker_version != version("faker"):
-        raise DatasetVerificationError("manifest faker version mismatch")
 
     records = _load_records(jsonl_path)
     if len(records) != manifest.count:
