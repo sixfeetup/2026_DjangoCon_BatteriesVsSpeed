@@ -1,0 +1,23 @@
+[project]
+name = "zip-data"
+version = "0.1.0"
+description = "Deterministic canonical ZIP benchmark dataset"
+authors = [
+    { name = "Calvin Hendryx-Parker", email = "calvin@sixfeetup.com" }
+]
+requires-python = ">=3.14.4"
+dependencies = [
+    "faker>=37",
+]
+
+[project.scripts]
+zip-data = "zip_data.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.9.9,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
