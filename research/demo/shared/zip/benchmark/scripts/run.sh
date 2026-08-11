@@ -83,13 +83,14 @@ signal_to_status() {
 }
 
 FINALIZED=0
+METADATA_READY=0
 ARTILLERY_PID=""
 
 finalize_with_status() {
   local status="$1"
   trap - EXIT HUP INT TERM
 
-  if [ "$FINALIZED" -eq 0 ] && [ -f "$METADATA_PATH" ]; then
+  if [ "$FINALIZED" -eq 0 ] && [ "$METADATA_READY" -eq 1 ]; then
     FINALIZED=1
     write_metadata "$(iso_utc_now)"
   fi
@@ -149,6 +150,11 @@ METADATA_PATH="$RESULT_DIR/metadata.json"
 COMPOSE_FILE="$(cd -- "$BENCHMARK_DIR" && realpath ../../../fastapi/zip/compose.yaml)"
 mkdir -p "$RESULT_DIR"
 
+trap 'handle_exit "$?"' EXIT
+trap 'handle_signal HUP' HUP
+trap 'handle_signal INT' INT
+trap 'handle_signal TERM' TERM
+
 node "$SCRIPT_DIR/render-config.mjs" "$PROFILE" "$TARGET" "$CONFIG_PATH"
 
 STARTED_AT="$(iso_utc_now)"
@@ -198,11 +204,8 @@ ARTILLERY_VERSION="$(corepack pnpm exec artillery --version | awk -F': +' '/^Art
 ARTILLERY_VERSION="$(trim "$ARTILLERY_VERSION")"
 require_value "artillery_version" "$ARTILLERY_VERSION"
 
+METADATA_READY=1
 write_metadata ""
-trap 'handle_exit "$?"' EXIT
-trap 'handle_signal HUP' HUP
-trap 'handle_signal INT' INT
-trap 'handle_signal TERM' TERM
 
 set +e
 corepack pnpm exec artillery run --output "$RAW_PATH" "$CONFIG_PATH" &

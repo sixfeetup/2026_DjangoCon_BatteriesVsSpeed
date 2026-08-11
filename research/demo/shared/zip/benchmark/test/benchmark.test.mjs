@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile, spawn } from 'node:child_process'
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { access, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
@@ -45,6 +45,20 @@ async function waitForJson(filePath, predicate, timeoutMs = 5_000) {
     }
 
     await delay(50)
+  }
+
+  throw new Error(`Timed out waiting for ${filePath}`)
+}
+
+async function waitForPath(filePath, timeoutMs = 5_000) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    try {
+      await access(filePath)
+      return
+    } catch {
+      await delay(50)
+    }
   }
 
   throw new Error(`Timed out waiting for ${filePath}`)
@@ -198,7 +212,7 @@ test('run script accepts pnpm-style leading double-dash', async () => {
   )
 })
 
-test('run script finalizes metadata and preserves signal status on SIGTERM', async () => {
+test('run script finalizes metadata when SIGTERM lands during the initial metadata write', async () => {
   const toolsDir = await mkdtemp(path.join(tmpdir(), 'zip-benchmark-tools-'))
   const fakeBinDir = path.join(toolsDir, 'bin')
   await mkdir(fakeBinDir, {recursive: true})
@@ -213,23 +227,8 @@ if [ "\${1:-}" = "pnpm" ] && [ "\${2:-}" = "exec" ] && [ "\${3:-}" = "artillery"
 fi
 
 if [ "\${1:-}" = "pnpm" ] && [ "\${2:-}" = "exec" ] && [ "\${3:-}" = "artillery" ] && [ "\${4:-}" = "run" ]; then
-  shift 4
-  output=""
-  while [ "$#" -gt 0 ]; do
-    if [ "$1" = "--output" ]; then
-      output="$2"
-      shift 2
-      continue
-    fi
-    shift
-  done
-
-  printf '{"ok":true}\n' > "$output"
-  trap 'exit 143' TERM INT
-  while kill -0 "$PPID" 2>/dev/null; do
-    sleep 0.1
-  done
-  exit 143
+  echo "artillery should not start when SIGTERM lands during the initial metadata write" >&2
+  exit 1
 fi
 
 echo "Unexpected corepack invocation: $*" >&2
@@ -237,11 +236,26 @@ exit 1
 `)
   await chmod(fakeCorepackPath, 0o755)
 
-  const runId = `signal-finalize-${Date.now()}`
+  const fakeNodePath = path.join(fakeBinDir, 'node')
+  await writeFile(fakeNodePath, `#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$#" -ge 1 ] && [ "$1" = "$WRITE_METADATA_SCRIPT" ] && [ -n "\${INITIAL_METADATA_WRITE_MARKER:-}" ] && [ ! -f "\${INITIAL_METADATA_WRITE_MARKER}" ]; then
+  : > "\${INITIAL_METADATA_WRITE_MARKER}"
+  sleep 30
+fi
+
+exec "$REAL_NODE" "$@"
+`)
+  await chmod(fakeNodePath, 0o755)
+
+  const runId = `signal-initial-metadata-${Date.now()}`
   const resultDir = path.join(benchmarkPath, 'results', runId)
   const metadataPath = path.join(resultDir, 'metadata.json')
+  const markerPath = path.join(toolsDir, 'initial-metadata-write-started')
   const child = spawn('bash', ['scripts/run.sh', 'smoke', 'http://localhost:8000'], {
     cwd: benchmarkPath,
+    detached: true,
     env: {
       ...process.env,
       RUN_ID: runId,
@@ -251,30 +265,32 @@ exit 1
       FASTAPI_VERSION: '0.141.0',
       UVICORN_VERSION: '0.35.0',
       REDIS_VERSION: 'Redis server v=8.2.2',
+      REAL_NODE: process.execPath,
+      WRITE_METADATA_SCRIPT: path.join(benchmarkPath, 'scripts', 'write-metadata.mjs'),
+      INITIAL_METADATA_WRITE_MARKER: markerPath,
       PATH: `${fakeBinDir}:${process.env.PATH}`
     }
   })
 
   try {
-    const initialMetadata = await waitForJson(metadataPath, (metadata) => metadata.completed_at === null)
-    assert.equal(initialMetadata.run_id, runId)
-    assert.equal(initialMetadata.git_revision, 'abc123')
+    await waitForPath(markerPath)
 
-    child.kill('SIGTERM')
+    process.kill(-child.pid, 'SIGTERM')
 
     const exit = await waitForExit(child)
     assert.deepEqual(exit, {code: 143, signal: null})
 
-    const finalizedMetadata = JSON.parse(await readFile(metadataPath, 'utf8'))
+    const finalizedMetadata = await waitForJson(metadataPath, (metadata) => typeof metadata.completed_at === 'string')
     assert.match(finalizedMetadata.completed_at, /^\d{4}-\d{2}-\d{2}T.*Z$/)
     assert.equal(finalizedMetadata.run_id, runId)
-    assert.equal(finalizedMetadata.started_at, initialMetadata.started_at)
     assert.equal(finalizedMetadata.git_revision, 'abc123')
     assert.equal(finalizedMetadata.target, 'http://localhost:8000')
     assert.equal(finalizedMetadata.profile, 'smoke')
     assert.equal(finalizedMetadata.artillery_version, '2.0.33')
   } finally {
-    child.kill('SIGTERM')
+    try {
+      process.kill(-child.pid, 'SIGTERM')
+    } catch {}
     await rm(resultDir, {recursive: true, force: true})
     await rm(toolsDir, {recursive: true, force: true})
   }
