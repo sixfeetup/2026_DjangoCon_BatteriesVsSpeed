@@ -18,7 +18,9 @@ compose() {
 }
 
 cleanup() {
-  compose down -v --remove-orphans
+  local exit_status="${1:-0}"
+  compose down -v --remove-orphans || true
+  return "$exit_status"
 }
 
 if [ "${1:-}" = "--" ]; then
@@ -38,7 +40,7 @@ TARGET_URL="${TARGET_URL:-http://api:8000}"
 RUN_ID="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)-${PROFILE}}"
 
 if [ "${CLEANUP:-0}" = "1" ]; then
-  trap cleanup EXIT
+  trap 'cleanup "$?"' EXIT
 fi
 
 export RUN_ID

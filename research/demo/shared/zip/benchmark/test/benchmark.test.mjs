@@ -135,6 +135,107 @@ test('docker benchmark wrapper is wired for compose benchmark service', async ()
   assert.match(script, /GIT_REVISION=/)
 })
 
+test('run-compose preserves the benchmark failure when cleanup also fails', async () => {
+  const toolsDir = await mkdtemp(path.join(tmpdir(), 'zip-compose-tools-'))
+  const fakeBinDir = path.join(toolsDir, 'bin')
+  const dockerLogPath = path.join(toolsDir, 'docker.log')
+  await mkdir(fakeBinDir, {recursive: true})
+
+  const fakeGitPath = path.join(fakeBinDir, 'git')
+  await writeFile(fakeGitPath, `#!/usr/bin/env bash
+set -euo pipefail
+
+echo "abc123"
+`)
+  await chmod(fakeGitPath, 0o755)
+
+  const fakeDockerPath = path.join(fakeBinDir, 'docker')
+  await writeFile(fakeDockerPath, `#!/usr/bin/env bash
+set -euo pipefail
+
+printf '%s\n' "$*" >> "$FAKE_DOCKER_LOG"
+
+if [ "\${1:-}" != "compose" ]; then
+  echo "Unexpected docker invocation: $*" >&2
+  exit 1
+fi
+
+shift
+joined="$*"
+
+case "\${1:-}" in
+  up)
+    exit 0
+    ;;
+  exec)
+    if [ "\${4:-}" = "python" ] && [ "\${5:-}" = "--version" ]; then
+      echo "Python 3.14.4"
+      exit 0
+    fi
+
+    case "$joined" in
+      *'version("zip-api")'*)
+        echo "0.1.0"
+        exit 0
+        ;;
+      *'version("fastapi")'*)
+        echo "0.141.0"
+        exit 0
+        ;;
+      *'version("uvicorn")'*)
+        echo "0.35.0"
+        exit 0
+        ;;
+    esac
+
+    if [ "\${3:-}" = "redis" ]; then
+      echo "Redis server v=8.2.2"
+      exit 0
+    fi
+    ;;
+  --profile)
+    if [ "\${2:-}" = "benchmark" ] && [ "\${3:-}" = "build" ]; then
+      exit 0
+    fi
+
+    if [ "\${2:-}" = "benchmark" ] && [ "\${3:-}" = "run" ]; then
+      exit 23
+    fi
+    ;;
+  down)
+    exit 91
+    ;;
+esac
+
+echo "Unexpected docker compose invocation: $joined" >&2
+exit 1
+`)
+  await chmod(fakeDockerPath, 0o755)
+
+  try {
+    await assert.rejects(
+      () => execFileAsync('bash', ['scripts/run-compose.sh', 'smoke'], {
+        cwd: benchmarkPath,
+        env: {
+          ...process.env,
+          CLEANUP: '1',
+          FAKE_DOCKER_LOG: dockerLogPath,
+          PATH: `${fakeBinDir}:${process.env.PATH}`
+        }
+      }),
+      (error) => {
+        assert.equal(error.code, 23)
+        return true
+      }
+    )
+
+    const dockerLog = await readFile(dockerLogPath, 'utf8')
+    assert.match(dockerLog, /compose down -v --remove-orphans/)
+  } finally {
+    await rm(toolsDir, {recursive: true, force: true})
+  }
+})
+
 test('fastapi compose exposes optional benchmark artillery service', async () => {
   const compose = await readFile(new URL('../../../../fastapi/zip/compose.yaml', import.meta.url), 'utf8')
   assert.match(compose, /^\s{2}artillery:/m)
