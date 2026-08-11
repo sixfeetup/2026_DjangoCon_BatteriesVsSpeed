@@ -73,6 +73,55 @@ process.stdout.write(JSON.stringify(metadata))
 NODE
 }
 
+signal_to_status() {
+  case "$1" in
+    HUP) echo 129 ;;
+    INT) echo 130 ;;
+    TERM) echo 143 ;;
+    *) echo 1 ;;
+  esac
+}
+
+FINALIZED=0
+ARTILLERY_PID=""
+
+finalize_with_status() {
+  local status="$1"
+  trap - EXIT HUP INT TERM
+
+  if [ "$FINALIZED" -eq 0 ] && [ -f "$METADATA_PATH" ]; then
+    FINALIZED=1
+    write_metadata "$(iso_utc_now)"
+  fi
+
+  exit "$status"
+}
+
+handle_exit() {
+  finalize_with_status "$1"
+}
+
+handle_signal() {
+  local signal="$1"
+  local status
+  local artillery_status
+  status="$(signal_to_status "$signal")"
+
+  if [ -n "$ARTILLERY_PID" ]; then
+    kill -s "$signal" "$ARTILLERY_PID" 2>/dev/null || true
+    set +e
+    wait "$ARTILLERY_PID"
+    artillery_status=$?
+    set -e
+    ARTILLERY_PID=""
+    if [ "$artillery_status" -ne 0 ] && [ "$artillery_status" -ne 127 ]; then
+      status="$artillery_status"
+    fi
+  fi
+
+  finalize_with_status "$status"
+}
+
 if [ "${1:-}" = "--" ]; then
   shift
 fi
@@ -150,13 +199,21 @@ ARTILLERY_VERSION="$(trim "$ARTILLERY_VERSION")"
 require_value "artillery_version" "$ARTILLERY_VERSION"
 
 write_metadata ""
+trap 'handle_exit "$?"' EXIT
+trap 'handle_signal HUP' HUP
+trap 'handle_signal INT' INT
+trap 'handle_signal TERM' TERM
 
 set +e
-corepack pnpm exec artillery run --output "$RAW_PATH" "$CONFIG_PATH"
+corepack pnpm exec artillery run --output "$RAW_PATH" "$CONFIG_PATH" &
+ARTILLERY_PID=$!
+wait "$ARTILLERY_PID"
 ARTILLERY_STATUS=$?
+ARTILLERY_PID=""
 set -e
 
 write_metadata "$(iso_utc_now)"
+FINALIZED=1
 
 echo "$RESULT_DIR"
 exit "$ARTILLERY_STATUS"
