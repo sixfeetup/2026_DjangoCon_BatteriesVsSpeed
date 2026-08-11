@@ -10,6 +10,10 @@ trim() {
   printf '%s' "$1" | tr -d '\r'
 }
 
+compose_file() {
+  cd -- "$BENCHMARK_DIR" && realpath ../../../fastapi/zip/compose.yaml
+}
+
 require_value() {
   local name="$1"
   local value="$2"
@@ -50,7 +54,7 @@ write_metadata() {
   SERVER_VERSION_VALUE="$SERVER_VERSION_VALUE" \
   REDIS_VERSION_VALUE="$REDIS_VERSION_VALUE" \
   EFFECTIVE_PHASES_VALUE="$EFFECTIVE_PHASES" \
-  EXECUTION_MODE_VALUE="host" \
+  EXECUTION_MODE_VALUE="${EXECUTION_MODE:-host}" \
   node <<'NODE' | node "$SCRIPT_DIR/write-metadata.mjs" "$METADATA_PATH"
 const metadata = {
   run_id: process.env.RUN_ID_VALUE,
@@ -147,7 +151,6 @@ RESULT_DIR="$RESULTS_DIR/$RUN_ID"
 CONFIG_PATH="$RESULT_DIR/config.json"
 RAW_PATH="$RESULT_DIR/raw.json"
 METADATA_PATH="$RESULT_DIR/metadata.json"
-COMPOSE_FILE="$(cd -- "$BENCHMARK_DIR" && realpath ../../../fastapi/zip/compose.yaml)"
 mkdir -p "$RESULT_DIR"
 
 trap 'handle_exit "$?"' EXIT
@@ -165,31 +168,37 @@ NODE_VERSION="$(trim "$(node --version)")"
 if [ -n "${PYTHON_VERSION:-}" ]; then
   PYTHON_VERSION_VALUE="$(trim "$PYTHON_VERSION")"
 else
-  PYTHON_VERSION_VALUE="$(trim "$(docker compose -f "$COMPOSE_FILE" exec -T api python --version 2>&1)")"
+  PYTHON_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api python --version 2>&1)")"
 fi
 
-if [ -n "${ZIP_API_VERSION:-}" ]; then
+if [ -n "${APPLICATION_VERSION:-}" ]; then
+  APPLICATION_VERSION_VALUE="$(trim "$APPLICATION_VERSION")"
+elif [ -n "${ZIP_API_VERSION:-}" ]; then
   APPLICATION_VERSION_VALUE="$(trim "$ZIP_API_VERSION")"
 else
-  APPLICATION_VERSION_VALUE="$(trim "$(docker compose -f "$COMPOSE_FILE" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("zip-api"))' 2>&1)")"
+  APPLICATION_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("zip-api"))' 2>&1)")"
 fi
 
-if [ -n "${FASTAPI_VERSION:-}" ]; then
+if [ -n "${FRAMEWORK_VERSION:-}" ]; then
+  FRAMEWORK_VERSION_VALUE="$(trim "$FRAMEWORK_VERSION")"
+elif [ -n "${FASTAPI_VERSION:-}" ]; then
   FRAMEWORK_VERSION_VALUE="$(trim "$FASTAPI_VERSION")"
 else
-  FRAMEWORK_VERSION_VALUE="$(trim "$(docker compose -f "$COMPOSE_FILE" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("fastapi"))' 2>&1)")"
+  FRAMEWORK_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("fastapi"))' 2>&1)")"
 fi
 
-if [ -n "${UVICORN_VERSION:-}" ]; then
+if [ -n "${SERVER_VERSION:-}" ]; then
+  SERVER_VERSION_VALUE="$(trim "$SERVER_VERSION")"
+elif [ -n "${UVICORN_VERSION:-}" ]; then
   SERVER_VERSION_VALUE="$(trim "$UVICORN_VERSION")"
 else
-  SERVER_VERSION_VALUE="$(trim "$(docker compose -f "$COMPOSE_FILE" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("uvicorn"))' 2>&1)")"
+  SERVER_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("uvicorn"))' 2>&1)")"
 fi
 
 if [ -n "${REDIS_VERSION:-}" ]; then
   REDIS_VERSION_VALUE="$(trim "$REDIS_VERSION")"
 else
-  REDIS_VERSION_VALUE="$(trim "$(docker compose -f "$COMPOSE_FILE" exec -T redis redis-server --version 2>&1)")"
+  REDIS_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T redis redis-server --version 2>&1)")"
 fi
 
 require_value "git_revision" "$GIT_REVISION"

@@ -7,7 +7,7 @@ const scriptDir = path.dirname(scriptPath)
 const benchmarkDir = path.resolve(scriptDir, '..')
 const profilesPath = path.join(benchmarkDir, 'profiles.json')
 const processorPath = path.join(benchmarkDir, 'processor.cjs')
-const payloadPath = path.resolve(benchmarkDir, '../data/benchmark_prefixes.csv')
+const defaultPayloadPath = path.resolve(benchmarkDir, '../data/benchmark_prefixes.csv')
 const overridableProfiles = ['smoke', 'baseline', 'sustained', 'overload']
 
 function parsePositiveInteger(name, value) {
@@ -44,15 +44,17 @@ function applySimpleOverrides(profile, phases, env) {
   const prefix = profile.toUpperCase()
   const rate = env[`${prefix}_RATE`]
   const duration = env[`${prefix}_DURATION`]
-  if (rate == null && duration == null) {
+  const hasRate = rate != null && rate !== ''
+  const hasDuration = duration != null && duration !== ''
+  if (!hasRate && !hasDuration) {
     return phases
   }
 
   const [phase] = phases
   return [{
     ...phase,
-    ...(duration == null ? {} : {duration: parsePositiveInteger(`${prefix}_DURATION`, duration)}),
-    ...(rate == null ? {} : {arrivalRate: parsePositiveInteger(`${prefix}_RATE`, rate)})
+    ...(hasDuration ? {duration: parsePositiveInteger(`${prefix}_DURATION`, duration)} : {}),
+    ...(hasRate ? {arrivalRate: parsePositiveInteger(`${prefix}_RATE`, rate)} : {})
   }]
 }
 
@@ -95,7 +97,7 @@ export async function buildConfig(profile, target, env = process.env) {
       phases,
       processor: processorPath,
       payload: {
-        path: payloadPath,
+        path: env.PREFIX_CORPUS_PATH || defaultPayloadPath,
         fields: ['q'],
         skipHeader: true,
         order: 'sequence'

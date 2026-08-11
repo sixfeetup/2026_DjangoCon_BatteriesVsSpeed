@@ -103,6 +103,46 @@ test('staircase override replaces measured rates but retains warm-up', async () 
   assert.deepEqual(config.config.phases.map((phase) => phase.arrivalRate), [10, 30, 60, 120, 240, 480, 960])
 })
 
+test('render config honors PREFIX_CORPUS_PATH override', async () => {
+  const config = await buildConfig('smoke', 'http://localhost:8000', {
+    PREFIX_CORPUS_PATH: '/data/benchmark_prefixes.csv'
+  })
+  assert.equal(config.config.payload.path, '/data/benchmark_prefixes.csv')
+})
+
+test('empty simple overrides are ignored', async () => {
+  const config = await buildConfig('smoke', 'http://localhost:8000', {
+    SMOKE_RATE: '',
+    SMOKE_DURATION: ''
+  })
+  assert.deepEqual(config.config.phases, [{duration: 10, arrivalRate: 1}])
+})
+
+test('docker benchmark image is pinned for reproducible runs', async () => {
+  const dockerfile = await readFile(new URL('../Dockerfile', import.meta.url), 'utf8')
+  assert.match(dockerfile, /FROM node:22\.23\.2-bookworm-slim/)
+  assert.match(dockerfile, /corepack prepare pnpm@11\.21\.0 --activate/)
+  assert.match(dockerfile, /COPY package\.json pnpm-lock\.yaml pnpm-workspace\.yaml \.\//)
+  assert.match(dockerfile, /pnpm install --frozen-lockfile/)
+})
+
+test('docker benchmark wrapper is wired for compose benchmark service', async () => {
+  const script = await readFile(new URL('../scripts/run-compose.sh', import.meta.url), 'utf8')
+  assert.match(script, /--profile benchmark build artillery/)
+  assert.match(script, /--profile benchmark run --rm artillery/)
+  assert.match(script, /importlib\.metadata\.version\("zip-api"\)/)
+  assert.match(script, /EXECUTION_MODE=docker/)
+  assert.match(script, /GIT_REVISION=/)
+})
+
+test('fastapi compose exposes optional benchmark artillery service', async () => {
+  const compose = await readFile(new URL('../../../../fastapi/zip/compose.yaml', import.meta.url), 'utf8')
+  assert.match(compose, /^\s{2}artillery:/m)
+  assert.match(compose, /profiles:\s*\n\s*- benchmark/)
+  assert.match(compose, /TARGET_URL: http:\/\/api:8000/)
+  assert.match(compose, /EXECUTION_MODE: docker/)
+})
+
 test('all committed profiles render', async () => {
   for (const profile of ['smoke', 'baseline', 'staircase', 'sustained', 'overload']) {
     const config = await buildConfig(profile, 'http://localhost:8000', {})
@@ -177,6 +217,17 @@ test('writeMetadata rejects incomplete metadata', async () => {
     }),
     /Missing metadata field/
   )
+})
+
+test('run script records EXECUTION_MODE from the environment', async () => {
+  const script = await readFile(new URL('../scripts/run.sh', import.meta.url), 'utf8')
+  assert.match(script, /EXECUTION_MODE_VALUE="\$\{EXECUTION_MODE:-host\}"/)
+})
+
+test('run script resolves the host compose file only on demand', async () => {
+  const script = await readFile(new URL('../scripts/run.sh', import.meta.url), 'utf8')
+  assert.match(script, /compose_file\(\)/)
+  assert.doesNotMatch(script, /^COMPOSE_FILE=/m)
 })
 
 test('run script requires profile and target arguments', async () => {
