@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from .dataset import DatasetVerificationError, generate_dataset, verify_dataset
+from .seeder import SeedError, seed_redis
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -20,6 +21,10 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser = subparsers.add_parser("verify")
     verify_parser.add_argument("--output", type=Path, required=True)
 
+    seed_parser = subparsers.add_parser("seed")
+    seed_parser.add_argument("--redis-url", required=True)
+    seed_parser.add_argument("--data-dir", type=Path, required=True)
+
     return parser
 
 
@@ -30,9 +35,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "generate":
             manifest = generate_dataset(args.output, seed=args.seed, count=args.count)
-        else:
+        elif args.command == "verify":
             manifest = verify_dataset(args.output)
-    except (DatasetVerificationError, ValueError) as exc:
+        else:
+            seed_redis(args.redis_url, args.data_dir)
+            return 0
+    except (DatasetVerificationError, SeedError, ValueError) as exc:
         parser.exit(1, f"{exc}\n")
 
     print(json.dumps(asdict(manifest), indent=2, sort_keys=True))
