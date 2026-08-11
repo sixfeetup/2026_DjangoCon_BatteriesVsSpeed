@@ -3,7 +3,7 @@ services:
     image: redis:8.2.2-alpine
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 1s
@@ -37,7 +37,7 @@ services:
       ZIP_DATA_KEY: zip-codes:v1
       ZIP_METADATA_KEY: zip-codes:v1:meta
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "127.0.0.1:${API_PORT:-8000}:8000"
     healthcheck:
       test:
         - CMD
@@ -59,10 +59,10 @@ services:
       api:
         condition: service_healthy
     environment:
-      TARGET_URL: http://api:8000
       PREFIX_CORPUS_PATH: /data/benchmark_prefixes.csv
       RUN_ID: ${RUN_ID:-}
       GIT_REVISION: ${GIT_REVISION:-}
+      TARGET_IMPLEMENTATION: ${TARGET_IMPLEMENTATION:-}
       PYTHON_VERSION: ${PYTHON_VERSION:-}
       APPLICATION_VERSION: ${APPLICATION_VERSION:-}
       FRAMEWORK_VERSION: ${FRAMEWORK_VERSION:-}

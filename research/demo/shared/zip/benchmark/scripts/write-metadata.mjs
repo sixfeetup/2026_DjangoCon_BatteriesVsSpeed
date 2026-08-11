@@ -9,6 +9,7 @@ export const metadataFields = [
   'started_at',
   'completed_at',
   'git_revision',
+  'target_implementation',
   'target',
   'profile',
   'node_version',

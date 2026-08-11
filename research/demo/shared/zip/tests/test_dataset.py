@@ -46,6 +46,17 @@ def test_full_dataset_and_prefix_corpus_satisfy_contract(tmp_path: Path) -> None
     assert len(prefixes) == len(set(prefixes)) == 100
     assert all(sum(value.startswith(prefix) for value in zips) >= 10 for prefix in prefixes)
 
+    committed_data = Path(__file__).parents[1] / "data"
+    committed_manifest = json.loads((committed_data / "manifest.json").read_text())
+    generated_bytes = (tmp_path / "zip_codes.jsonl").read_bytes()
+    committed_bytes = (committed_data / "zip_codes.jsonl").read_bytes()
+
+    assert committed_manifest["seed"] == 20260811
+    assert committed_manifest["count"] == 50_000
+    assert generated_bytes == committed_bytes
+    assert hashlib.sha256(generated_bytes).hexdigest() == manifest.sha256
+    assert manifest.sha256 == committed_manifest["sha256"]
+
 
 def test_verifier_accepts_non_default_seed(tmp_path: Path) -> None:
     manifest = generate_dataset(tmp_path, seed=12345, count=500)

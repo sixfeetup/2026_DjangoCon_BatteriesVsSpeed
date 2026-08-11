@@ -14,6 +14,14 @@ compose_file() {
   cd -- "$BENCHMARK_DIR" && realpath ../../../fastapi/zip/compose.yaml
 }
 
+validate_run_id() {
+  local value="$1"
+  if [[ ! "$value" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+)*$ ]]; then
+    echo "Invalid RUN_ID: use only ASCII letters, digits, underscores, hyphens, and separated dots" >&2
+    exit 1
+  fi
+}
+
 require_value() {
   local name="$1"
   local value="$2"
@@ -44,6 +52,7 @@ write_metadata() {
   STARTED_AT_VALUE="$STARTED_AT" \
   COMPLETED_AT_VALUE="$completed_at" \
   GIT_REVISION_VALUE="$GIT_REVISION" \
+  TARGET_IMPLEMENTATION_VALUE="$TARGET_IMPLEMENTATION_VALUE" \
   TARGET_VALUE="$TARGET" \
   PROFILE_VALUE="$PROFILE" \
   NODE_VERSION_VALUE="$NODE_VERSION" \
@@ -61,6 +70,7 @@ const metadata = {
   started_at: process.env.STARTED_AT_VALUE,
   completed_at: process.env.COMPLETED_AT_VALUE || null,
   git_revision: process.env.GIT_REVISION_VALUE,
+  target_implementation: process.env.TARGET_IMPLEMENTATION_VALUE,
   target: process.env.TARGET_VALUE,
   profile: process.env.PROFILE_VALUE,
   node_version: process.env.NODE_VERSION_VALUE,
@@ -147,11 +157,15 @@ BENCHMARK_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd -P)"
 RESULTS_DIR="$BENCHMARK_DIR/results"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_ID="${RUN_ID:-${TIMESTAMP}-${PROFILE}}"
+validate_run_id "$RUN_ID"
 RESULT_DIR="$RESULTS_DIR/$RUN_ID"
 CONFIG_PATH="$RESULT_DIR/config.json"
 RAW_PATH="$RESULT_DIR/raw.json"
 METADATA_PATH="$RESULT_DIR/metadata.json"
-mkdir -p "$RESULT_DIR"
+if ! mkdir -- "$RESULT_DIR"; then
+  echo "Benchmark run directory already exists: $RESULT_DIR" >&2
+  exit 1
+fi
 
 trap 'handle_exit "$?"' EXIT
 trap 'handle_signal HUP' HUP
@@ -161,53 +175,48 @@ trap 'handle_signal TERM' TERM
 node "$SCRIPT_DIR/render-config.mjs" "$PROFILE" "$TARGET" "$CONFIG_PATH"
 
 STARTED_AT="$(iso_utc_now)"
-GIT_REVISION="${GIT_REVISION:-$(git -C "$BENCHMARK_DIR" rev-parse HEAD)}"
 EFFECTIVE_PHASES="$(node -e "const fs = require('node:fs'); const config = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(JSON.stringify(config.config.phases));" "$CONFIG_PATH")"
 NODE_VERSION="$(trim "$(node --version)")"
+METADATA_SOURCE_VALUE="${METADATA_SOURCE:-explicit}"
 
-if [ -n "${PYTHON_VERSION:-}" ]; then
-  PYTHON_VERSION_VALUE="$(trim "$PYTHON_VERSION")"
-else
-  PYTHON_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api python --version 2>&1)")"
-fi
+case "$METADATA_SOURCE_VALUE" in
+  explicit)
+    GIT_REVISION="$(trim "${GIT_REVISION:-}")"
+    TARGET_IMPLEMENTATION_VALUE="$(trim "${TARGET_IMPLEMENTATION:-}")"
+    PYTHON_VERSION_VALUE="$(trim "${PYTHON_VERSION:-}")"
+    APPLICATION_VERSION_VALUE="$(trim "${APPLICATION_VERSION:-${ZIP_API_VERSION:-}}")"
+    FRAMEWORK_VERSION_VALUE="$(trim "${FRAMEWORK_VERSION:-${FASTAPI_VERSION:-}}")"
+    SERVER_VERSION_VALUE="$(trim "${SERVER_VERSION:-${UVICORN_VERSION:-}}")"
+    REDIS_VERSION_VALUE="$(trim "${REDIS_VERSION:-}")"
+    ;;
+  local-compose)
+    LOCAL_COMPOSE_TARGET="http://localhost:${API_PORT:-8000}"
+    if [ "$TARGET" != "$LOCAL_COMPOSE_TARGET" ]; then
+      echo "METADATA_SOURCE=local-compose only supports $LOCAL_COMPOSE_TARGET" >&2
+      exit 1
+    fi
+    GIT_REVISION="$(trim "$(git -C "$BENCHMARK_DIR" rev-parse HEAD)")"
+    TARGET_IMPLEMENTATION_VALUE="fastapi-zip"
+    PYTHON_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api python --version 2>&1)")"
+    APPLICATION_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("zip-api"))' 2>&1)")"
+    FRAMEWORK_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("fastapi"))' 2>&1)")"
+    SERVER_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("uvicorn"))' 2>&1)")"
+    REDIS_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T redis redis-server --version 2>&1)")"
+    ;;
+  *)
+    echo "Invalid METADATA_SOURCE: expected explicit or local-compose" >&2
+    exit 1
+    ;;
+esac
 
-if [ -n "${APPLICATION_VERSION:-}" ]; then
-  APPLICATION_VERSION_VALUE="$(trim "$APPLICATION_VERSION")"
-elif [ -n "${ZIP_API_VERSION:-}" ]; then
-  APPLICATION_VERSION_VALUE="$(trim "$ZIP_API_VERSION")"
-else
-  APPLICATION_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("zip-api"))' 2>&1)")"
-fi
-
-if [ -n "${FRAMEWORK_VERSION:-}" ]; then
-  FRAMEWORK_VERSION_VALUE="$(trim "$FRAMEWORK_VERSION")"
-elif [ -n "${FASTAPI_VERSION:-}" ]; then
-  FRAMEWORK_VERSION_VALUE="$(trim "$FASTAPI_VERSION")"
-else
-  FRAMEWORK_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("fastapi"))' 2>&1)")"
-fi
-
-if [ -n "${SERVER_VERSION:-}" ]; then
-  SERVER_VERSION_VALUE="$(trim "$SERVER_VERSION")"
-elif [ -n "${UVICORN_VERSION:-}" ]; then
-  SERVER_VERSION_VALUE="$(trim "$UVICORN_VERSION")"
-else
-  SERVER_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T api uv run --frozen python -c 'import importlib.metadata; print(importlib.metadata.version("uvicorn"))' 2>&1)")"
-fi
-
-if [ -n "${REDIS_VERSION:-}" ]; then
-  REDIS_VERSION_VALUE="$(trim "$REDIS_VERSION")"
-else
-  REDIS_VERSION_VALUE="$(trim "$(docker compose -f "$(compose_file)" exec -T redis redis-server --version 2>&1)")"
-fi
-
-require_value "git_revision" "$GIT_REVISION"
+require_value "TARGET_IMPLEMENTATION" "$TARGET_IMPLEMENTATION_VALUE"
+require_value "GIT_REVISION" "$GIT_REVISION"
 require_value "node_version" "$NODE_VERSION"
-require_value "python_version" "$PYTHON_VERSION_VALUE"
-require_value "application_version" "$APPLICATION_VERSION_VALUE"
-require_value "framework_version" "$FRAMEWORK_VERSION_VALUE"
-require_value "server_version" "$SERVER_VERSION_VALUE"
-require_value "redis_version" "$REDIS_VERSION_VALUE"
+require_value "PYTHON_VERSION" "$PYTHON_VERSION_VALUE"
+require_value "APPLICATION_VERSION" "$APPLICATION_VERSION_VALUE"
+require_value "FRAMEWORK_VERSION" "$FRAMEWORK_VERSION_VALUE"
+require_value "SERVER_VERSION" "$SERVER_VERSION_VALUE"
+require_value "REDIS_VERSION" "$REDIS_VERSION_VALUE"
 
 ARTILLERY_VERSION="$(corepack pnpm exec artillery --version | awk -F': +' '/^Artillery:/ {print $2}')"
 ARTILLERY_VERSION="$(trim "$ARTILLERY_VERSION")"

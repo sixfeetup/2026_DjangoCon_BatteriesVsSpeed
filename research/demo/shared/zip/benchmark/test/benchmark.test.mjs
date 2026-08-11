@@ -19,6 +19,7 @@ const metadataKeys = [
   'started_at',
   'completed_at',
   'git_revision',
+  'target_implementation',
   'target',
   'profile',
   'node_version',
@@ -219,6 +220,7 @@ exit 1
         env: {
           ...process.env,
           CLEANUP: '1',
+          TARGET_URL: 'https://wrong-target.example.test',
           FAKE_DOCKER_LOG: dockerLogPath,
           PATH: `${fakeBinDir}:${process.env.PATH}`
         }
@@ -230,17 +232,22 @@ exit 1
     )
 
     const dockerLog = await readFile(dockerLogPath, 'utf8')
+    assert.match(dockerLog, /compose --profile benchmark run --rm artillery smoke http:\/\/api:8000/)
+    assert.doesNotMatch(dockerLog, /wrong-target/)
     assert.match(dockerLog, /compose down -v --remove-orphans/)
   } finally {
     await rm(toolsDir, {recursive: true, force: true})
   }
 })
 
-test('fastapi compose exposes optional benchmark artillery service', async () => {
+test('fastapi compose exposes optional benchmark artillery service on loopback ports', async () => {
   const compose = await readFile(new URL('../../../../fastapi/zip/compose.yaml', import.meta.url), 'utf8')
   assert.match(compose, /^\s{2}artillery:/m)
   assert.match(compose, /profiles:\s*\n\s*- benchmark/)
-  assert.match(compose, /TARGET_URL: http:\/\/api:8000/)
+  assert.doesNotMatch(compose, /TARGET_URL:/)
+  assert.match(compose, /TARGET_IMPLEMENTATION:/)
+  assert.match(compose, /127\.0\.0\.1:\$\{REDIS_PORT:-6379\}:6379/)
+  assert.match(compose, /127\.0\.0\.1:\$\{API_PORT:-8000\}:8000/)
   assert.match(compose, /EXECUTION_MODE: docker/)
 })
 
@@ -259,21 +266,95 @@ test('non-http targets are rejected', async () => {
   await assert.rejects(() => buildConfig('smoke', 'redis://localhost:6379', {}), /HTTP\(S\) target/)
 })
 
-test('response validator accepts exact payload contract', () => {
-  const body = JSON.stringify(Array.from({length: 10}, (_, index) => ({
-    zip: String(10000 + index),
+function zipResponseBody(prefix = '123') {
+  return JSON.stringify(Array.from({length: 10}, (_, index) => ({
+    zip: `${prefix}${String(index).padStart(2, '0')}`,
     city: `City ${index}`
   })))
-  assert.doesNotThrow(() => processor.assertZipResponse({}, {statusCode: 200, body}))
+}
+
+function callbackContext(q = '123') {
+  return {vars: {q}}
+}
+
+test('response validator accepts exact requested, unique, ascending payload contract', () => {
+  assert.doesNotThrow(() => processor.assertZipResponse(
+    {},
+    {statusCode: 200, body: zipResponseBody()},
+    callbackContext()
+  ))
 })
 
 test('response validator rejects wrong payload length', () => {
-  assert.throws(() => processor.assertZipResponse({}, {statusCode: 200, body: '[]'}), /10 records/)
+  assert.throws(
+    () => processor.assertZipResponse({}, {statusCode: 200, body: '[]'}, callbackContext()),
+    /10 records/
+  )
 })
 
 test('response validator rejects unexpected object shapes', () => {
   const invalidBody = JSON.stringify(Array.from({length: 10}, () => ({zip: '12345', city: 'Town', state: 'IN'})))
-  assert.throws(() => processor.assertZipResponse({}, {statusCode: 200, body: invalidBody}), /only zip and city/)
+  assert.throws(
+    () => processor.assertZipResponse({}, {statusCode: 200, body: invalidBody}, callbackContext()),
+    /only zip and city/
+  )
+})
+
+test('response validator rejects ZIPs outside the requested prefix', () => {
+  assert.throws(
+    () => processor.assertZipResponse({}, {statusCode: 200, body: zipResponseBody('124')}, callbackContext('123')),
+    /requested prefix 123/
+  )
+})
+
+test('response validator rejects duplicate ZIPs', () => {
+  const records = JSON.parse(zipResponseBody())
+  records[1].zip = records[0].zip
+  assert.throws(
+    () => processor.assertZipResponse({}, {statusCode: 200, body: JSON.stringify(records)}, callbackContext()),
+    /unique ZIPs/
+  )
+})
+
+test('response validator rejects ZIPs that are not strictly ascending', () => {
+  const records = JSON.parse(zipResponseBody())
+  ;[records[0], records[1]] = [records[1], records[0]]
+  assert.throws(
+    () => processor.assertZipResponse({}, {statusCode: 200, body: JSON.stringify(records)}, callbackContext()),
+    /strictly ascending/
+  )
+})
+
+test('response callback accepts valid payload without emitting an invalid counter', () => {
+  const emissions = []
+  const nextCalls = []
+  processor.assertZipResponse(
+    {},
+    {statusCode: 200, body: zipResponseBody()},
+    callbackContext(),
+    {emit: (...args) => emissions.push(args)},
+    (...args) => nextCalls.push(args)
+  )
+
+  assert.deepEqual(emissions, [])
+  assert.deepEqual(nextCalls, [[]])
+})
+
+test('response callback emits invalid counter and passes validation error to next', () => {
+  const emissions = []
+  const nextCalls = []
+  processor.assertZipResponse(
+    {},
+    {statusCode: 200, body: zipResponseBody('124')},
+    callbackContext('123'),
+    {emit: (...args) => emissions.push(args)},
+    (...args) => nextCalls.push(args)
+  )
+
+  assert.deepEqual(emissions, [['counter', 'zip.invalid_response', 1]])
+  assert.equal(nextCalls.length, 1)
+  assert.equal(nextCalls[0].length, 1)
+  assert.match(nextCalls[0][0].message, /requested prefix 123/)
 })
 
 test('profiles fixture contains all committed profiles', async () => {
@@ -289,6 +370,7 @@ test('writeMetadata writes ordered metadata json', async () => {
     started_at: '2026-08-11T12:00:00.000Z',
     completed_at: '2026-08-11T12:00:10.000Z',
     git_revision: 'abc123',
+    target_implementation: 'fastapi-zip',
     target: 'http://localhost:8000',
     profile: 'smoke',
     node_version: 'v22.23.2',
@@ -364,6 +446,121 @@ test('run script accepts pnpm-style leading double-dash', async () => {
   )
 })
 
+test('run script rejects traversal and unsafe RUN_ID values', async () => {
+  const disposablePaths = new Map([
+    ['../outside-results', path.join(benchmarkPath, 'outside-results')],
+    ['nested/run', path.join(benchmarkPath, 'results', 'nested')],
+    ['nested\\run', path.join(benchmarkPath, 'results', 'nested\\run')],
+    ['bad run', path.join(benchmarkPath, 'results', 'bad run')]
+  ])
+
+  for (const runId of ['../outside-results', 'nested/run', 'nested\\run', '.', '..', 'bad run']) {
+    try {
+      await assert.rejects(
+        () => execFileAsync('bash', ['scripts/run.sh', 'unknown', 'http://localhost:8000'], {
+          cwd: benchmarkPath,
+          env: {...process.env, RUN_ID: runId}
+        }),
+        (error) => {
+          assert.equal(error.code, 1)
+          assert.match(error.stderr, /Invalid RUN_ID/)
+          return true
+        }
+      )
+    } finally {
+      const disposablePath = disposablePaths.get(runId)
+      if (disposablePath) {
+        await rm(disposablePath, {recursive: true, force: true})
+      }
+    }
+  }
+})
+
+test('run script rejects an existing run directory', async () => {
+  const runId = `collision-${Date.now()}`
+  const resultDir = path.join(benchmarkPath, 'results', runId)
+  await mkdir(resultDir)
+
+  try {
+    await assert.rejects(
+      () => execFileAsync('bash', ['scripts/run.sh', 'unknown', 'http://localhost:8000'], {
+        cwd: benchmarkPath,
+        env: {...process.env, RUN_ID: runId}
+      }),
+      (error) => {
+        assert.equal(error.code, 1)
+        assert.match(error.stderr, /already exists/)
+        return true
+      }
+    )
+  } finally {
+    await rm(resultDir, {recursive: true, force: true})
+  }
+})
+
+test('alternate host targets require explicit target and component metadata', async () => {
+  const toolsDir = await mkdtemp(path.join(tmpdir(), 'zip-explicit-metadata-'))
+  const fakeDockerPath = path.join(toolsDir, 'docker')
+  const runId = `explicit-metadata-${Date.now()}`
+  const resultDir = path.join(benchmarkPath, 'results', runId)
+  await writeFile(fakeDockerPath, '#!/usr/bin/env bash\necho "docker must not be used for explicit metadata" >&2\nexit 99\n')
+  await chmod(fakeDockerPath, 0o755)
+
+  try {
+    await assert.rejects(
+      () => execFileAsync('bash', ['scripts/run.sh', 'smoke', 'https://benchmark.example.test'], {
+        cwd: benchmarkPath,
+        env: {
+          ...process.env,
+          RUN_ID: runId,
+          PATH: `${toolsDir}:${process.env.PATH}`
+        }
+      }),
+      (error) => {
+        assert.equal(error.code, 1)
+        assert.match(error.stderr, /TARGET_IMPLEMENTATION/)
+        assert.doesNotMatch(error.stderr, /docker must not be used/)
+        return true
+      }
+    )
+  } finally {
+    await rm(resultDir, {recursive: true, force: true})
+    await rm(toolsDir, {recursive: true, force: true})
+  }
+})
+
+test('local Compose metadata discovery rejects alternate targets before Docker lookup', async () => {
+  const toolsDir = await mkdtemp(path.join(tmpdir(), 'zip-local-compose-target-'))
+  const fakeDockerPath = path.join(toolsDir, 'docker')
+  const runId = `local-compose-target-${Date.now()}`
+  const resultDir = path.join(benchmarkPath, 'results', runId)
+  await writeFile(fakeDockerPath, '#!/usr/bin/env bash\necho "docker must not be used for an alternate target" >&2\nexit 99\n')
+  await chmod(fakeDockerPath, 0o755)
+
+  try {
+    await assert.rejects(
+      () => execFileAsync('bash', ['scripts/run.sh', 'smoke', 'https://benchmark.example.test'], {
+        cwd: benchmarkPath,
+        env: {
+          ...process.env,
+          METADATA_SOURCE: 'local-compose',
+          RUN_ID: runId,
+          PATH: `${toolsDir}:${process.env.PATH}`
+        }
+      }),
+      (error) => {
+        assert.equal(error.code, 1)
+        assert.match(error.stderr, /local-compose only supports http:\/\/localhost/)
+        assert.doesNotMatch(error.stderr, /docker must not be used/)
+        return true
+      }
+    )
+  } finally {
+    await rm(resultDir, {recursive: true, force: true})
+    await rm(toolsDir, {recursive: true, force: true})
+  }
+})
+
 test('run script finalizes metadata when SIGTERM lands during the initial metadata write', async () => {
   const toolsDir = await mkdtemp(path.join(tmpdir(), 'zip-benchmark-tools-'))
   const fakeBinDir = path.join(toolsDir, 'bin')
@@ -412,6 +609,7 @@ exec "$REAL_NODE" "$@"
       ...process.env,
       RUN_ID: runId,
       GIT_REVISION: 'abc123',
+      TARGET_IMPLEMENTATION: 'fastapi-zip',
       PYTHON_VERSION: 'Python 3.14.4',
       ZIP_API_VERSION: '0.1.0',
       FASTAPI_VERSION: '0.141.0',
