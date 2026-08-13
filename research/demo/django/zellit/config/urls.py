@@ -13,9 +13,12 @@ from ak.views import NotFoundView
 from ak.views import OKView
 from config.api import api
 from config.api import csrf
+from listings.api import router as listings_router
+from listings.health import health
 from users.views import router as user_router
 
 api.add_router("/users/", user_router)
+api.add_router("/", listings_router)
 
 urlpatterns = [
     path("", HomepageView.as_view(), name="home"),
@@ -24,7 +27,8 @@ urlpatterns = [
     path("403", ForbiddenView.as_view(), name="forbidden"),
     path("404", NotFoundView.as_view(), name="not_found"),
     path("500", InternalServerErrorView.as_view(), name="internal_server_error"),
-    path("health/", include("health_check.urls")),
+    path("health", health, name="zellit_health"),
+    path("health/diagnostics/", include("health_check.urls")),
     path("api/v1/", api.urls),
     path("api/csrf/", csrf),
 ]
