@@ -1,0 +1,23 @@
+[project]
+name = "zellit-data"
+version = "0.1.0"
+description = "Deterministic framework-neutral Zellit dataset tooling"
+authors = [
+    { name = "Frank Wiles", email = "frank@revsys.com" }
+]
+requires-python = ">=3.12.12"
+dependencies = [
+    "faker==40.5.1",
+]
+
+[project.scripts]
+zellit-data = "zellit_data.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.26,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9,<10",
+]

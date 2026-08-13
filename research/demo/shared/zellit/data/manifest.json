@@ -1,0 +1,103 @@
+{
+  "files": {
+    "actors.csv": {
+      "bytes": 654433,
+      "columns": [
+        "id",
+        "handle",
+        "display_name"
+      ],
+      "rows": 20000,
+      "sha256": "db77dd21199d8882f1134b5fc51228a4d5c0fbfb5e70b7c61cd465aad4808dfa"
+    },
+    "comment_votes.csv": {
+      "bytes": 12733534,
+      "columns": [
+        "id",
+        "comment_id",
+        "actor_id",
+        "value"
+      ],
+      "rows": 600000,
+      "sha256": "a6e82ab7c53bc55c03f14c6005e78d24198f523fc8f1adacc88fcc83f2f7b21e"
+    },
+    "comments.csv": {
+      "bytes": 22377924,
+      "columns": [
+        "id",
+        "listing_id",
+        "actor_id",
+        "body",
+        "created_at"
+      ],
+      "rows": 300000,
+      "sha256": "0ab6420edbb119adae38289b50d612ee00ec713abe261362e3f415583910ecce"
+    },
+    "listing_votes.csv": {
+      "bytes": 16422510,
+      "columns": [
+        "id",
+        "listing_id",
+        "actor_id",
+        "value"
+      ],
+      "rows": 800000,
+      "sha256": "292c6608327df6e30d07089ff6e2a7bdfd8ca48612aced39fbe8224be685cfe7"
+    },
+    "listings.csv": {
+      "bytes": 7240893,
+      "columns": [
+        "id",
+        "zip_code_id",
+        "street_address",
+        "price",
+        "bedrooms",
+        "bathrooms",
+        "square_feet",
+        "year_built",
+        "listed_at"
+      ],
+      "rows": 100000,
+      "sha256": "dcdb061634d050c05251f6a27af3880f90c7f9b9ac66e99eca13c5c77d4db665"
+    },
+    "photos.csv": {
+      "bytes": 25400082,
+      "columns": [
+        "id",
+        "listing_id",
+        "url",
+        "position"
+      ],
+      "rows": 400000,
+      "sha256": "805a79d185ca403f0c2bfa9a5660bd522741d591aa7d69d09529c5b9cfe0f11a"
+    },
+    "zip_codes.csv": {
+      "bytes": 25193,
+      "columns": [
+        "code",
+        "city",
+        "state",
+        "population",
+        "households",
+        "median_age",
+        "median_household_income",
+        "median_home_value"
+      ],
+      "rows": 500,
+      "sha256": "0021b69f432a8e983d8745a42d8b129843de9e821f07f35cc68499b2c734d779"
+    }
+  },
+  "generator_version": "1",
+  "overall_digest": "d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862",
+  "request_corpus": {
+    "bytes": 4416,
+    "columns": [
+      "zip_code",
+      "offset"
+    ],
+    "rows": 500,
+    "sha256": "b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1"
+  },
+  "schema_version": "1",
+  "seed": 20260813
+}
