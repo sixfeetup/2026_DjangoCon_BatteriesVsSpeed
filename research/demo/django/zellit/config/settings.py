@@ -81,7 +81,7 @@ INSTALLED_APPS += [
 ]
 
 # Our Apps
-INSTALLED_APPS += ["ak", "users"]
+INSTALLED_APPS += ["ak", "users", "listings.apps.ListingsConfig"]
 
 #############################################################################
 # Middleware
