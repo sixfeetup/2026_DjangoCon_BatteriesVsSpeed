@@ -20,3 +20,16 @@ ZIPs crossed with offsets 0, 20, 40, 60, and 80.
 Regeneration must use the locked environment and must produce the committed
 manifest exactly. Update the specification, manifest, environment contract,
 and corpus together when deliberately changing the dataset.
+
+After Django migrations create the explicit Zellit tables, seed PostgreSQL with:
+
+```shell
+uv run zellit-data seed --database-url "$DATABASE_URL" \
+  --data-dir data/generated --manifest data/manifest.json --if-needed
+```
+
+The loader verifies every byte before opening its destructive transaction,
+serializes concurrent seeders with a PostgreSQL advisory lock, uses explicit
+`COPY` columns, validates loaded counts and relationships, and writes readiness
+metadata last. Any failure rolls back the complete replacement. `--if-needed`
+leaves an already matching dataset untouched; `--force` deliberately reloads.
