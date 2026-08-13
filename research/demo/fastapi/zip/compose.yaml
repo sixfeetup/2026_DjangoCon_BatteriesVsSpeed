@@ -1,0 +1,84 @@
+services:
+  redis:
+    image: redis:8.2.2-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  seed:
+    build: ../../shared/zip
+    command: ["seed", "--redis-url", "redis://redis:6379/0", "--data-dir", "/data"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../../shared/zip/data/dataset.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      ZIP_DATA_KEY: zip-codes:v1
+      ZIP_METADATA_KEY: zip-codes:v1:meta
+    volumes:
+      - ../../shared/zip/data:/data:ro
+
+  api:
+    build: .
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    env_file:
+      - ../../shared/zip/data/dataset.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      ZIP_DATA_KEY: zip-codes:v1
+      ZIP_METADATA_KEY: zip-codes:v1:meta
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import json, urllib.request
+          with urllib.request.urlopen("http://127.0.0.1:8000/health") as response:
+              assert json.load(response) == {"status": "ready"}
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  artillery:
+    profiles:
+      - benchmark
+    build: ../../shared/zip/benchmark
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      PREFIX_CORPUS_PATH: /data/benchmark_prefixes.csv
+      RUN_ID: ${RUN_ID:-}
+      GIT_REVISION: ${GIT_REVISION:-}
+      TARGET_IMPLEMENTATION: ${TARGET_IMPLEMENTATION:-}
+      PYTHON_VERSION: ${PYTHON_VERSION:-}
+      APPLICATION_VERSION: ${APPLICATION_VERSION:-}
+      FRAMEWORK_VERSION: ${FRAMEWORK_VERSION:-}
+      SERVER_VERSION: ${SERVER_VERSION:-}
+      REDIS_VERSION: ${REDIS_VERSION:-}
+      SMOKE_RATE: ${SMOKE_RATE:-}
+      SMOKE_DURATION: ${SMOKE_DURATION:-}
+      BASELINE_RATE: ${BASELINE_RATE:-}
+      BASELINE_DURATION: ${BASELINE_DURATION:-}
+      STAIRCASE_RATES: ${STAIRCASE_RATES:-}
+      SUSTAINED_RATE: ${SUSTAINED_RATE:-}
+      SUSTAINED_DURATION: ${SUSTAINED_DURATION:-}
+      OVERLOAD_RATE: ${OVERLOAD_RATE:-}
+      OVERLOAD_DURATION: ${OVERLOAD_DURATION:-}
+      ENABLE_OVERLOAD: ${ENABLE_OVERLOAD:-0}
+      EXECUTION_MODE: docker
+    volumes:
+      - ../../shared/zip/data/benchmark_prefixes.csv:/data/benchmark_prefixes.csv:ro
+      - ../../shared/zip/benchmark/results:/benchmark/results

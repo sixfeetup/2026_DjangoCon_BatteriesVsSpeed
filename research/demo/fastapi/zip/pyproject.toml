@@ -1,0 +1,29 @@
+[project]
+name = "zip-api"
+version = "0.1.0"
+description = "Redis-backed ZIP lookup service"
+authors = [
+    { name = "Calvin Hendryx-Parker", email = "calvin@sixfeetup.com" }
+]
+requires-python = ">=3.14.4"
+dependencies = [
+    "fastapi>=0.141",
+    "redis>=6",
+    "uvicorn>=0.35",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.9,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+asyncio_mode = "auto"
+markers = ["integration: requires the Compose Redis service"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28",
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+]

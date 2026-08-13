@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": "22.23.2"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "benchmark": "bash scripts/run.sh"
+  },
+  "devDependencies": {
+    "artillery": "2.0.33"
+  }
+}
