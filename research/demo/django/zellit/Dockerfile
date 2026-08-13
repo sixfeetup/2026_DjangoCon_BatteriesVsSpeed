@@ -52,10 +52,18 @@ COPY . /code/
 WORKDIR /code
 
 # Tailwind download
-RUN DATABASE_URL=sqlite://:memory: SECRET_KEY=nope-nope-nope python -m manage tailwind --skip-checks download_cli
-RUN DATABASE_URL=sqlite://:memory: SECRET_KEY=nope-nope-nope python -m manage tailwind --skip-checks build
+RUN SECRET_KEY=nope-nope-nope DJANGO_DATABASE_MODE=standard \
+    DJANGO_CONN_MAX_AGE=0 DJANGO_GEVENT_POOL_MAX=20 \
+    PGHOST=localhost PGDATABASE=postgres PGPASSWORD= PGUSER=postgres \
+    python -m manage tailwind --skip-checks download_cli
+RUN SECRET_KEY=nope-nope-nope DJANGO_DATABASE_MODE=standard \
+    DJANGO_CONN_MAX_AGE=0 DJANGO_GEVENT_POOL_MAX=20 \
+    PGHOST=localhost PGDATABASE=postgres PGPASSWORD= PGUSER=postgres \
+    python -m manage tailwind --skip-checks build
 
-CMD ["gunicorn", "-c", "/code/gunicorn.conf.py", "config.wsgi"]
+RUN chmod +x /code/scripts/serve.sh /code/scripts/render_runtime.py
+
+CMD ["/code/scripts/serve.sh"]
 
 ENV X_IMAGE_TAG=v0.0.0
 

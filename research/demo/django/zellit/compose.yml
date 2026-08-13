@@ -1,97 +1,111 @@
-x-common-service: &common-service
+x-django-environment: &django-environment
+  BENCHMARK_MODE: "true"
+  DJANGO_DATABASE_MODE: ${DJANGO_DATABASE_MODE:-standard}
+  DJANGO_CONN_MAX_AGE: ${DJANGO_CONN_MAX_AGE:-60}
+  DJANGO_GEVENT_POOL_MAX: ${DJANGO_GEVENT_POOL_MAX:-20}
+  RUNTIME_LABEL: ${RUNTIME_LABEL:-local-sync}
+  GUNICORN_BIND: ${GUNICORN_BIND:-0.0.0.0:8000}
+  GUNICORN_WORKER_CLASS: ${GUNICORN_WORKER_CLASS:-sync}
+  GUNICORN_WORKERS: ${GUNICORN_WORKERS:-1}
+  GUNICORN_THREADS: ${GUNICORN_THREADS:-1}
+  GUNICORN_WORKER_CONNECTIONS: ${GUNICORN_WORKER_CONNECTIONS:-1000}
+  GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-30}
+  GUNICORN_KEEPALIVE: ${GUNICORN_KEEPALIVE:-2}
+  GUNICORN_ACCESS_LOG_ENABLED: ${GUNICORN_ACCESS_LOG_ENABLED:-false}
+  DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-ERROR}
+
+x-django-service: &django-service
   build:
     context: .
-  depends_on:
-    db:
-      condition: service_healthy
-    redis:
-      condition: service_started
+  image: zellit-django:local
+  env_file:
+    - .env
+    - ../../shared/zellit/data/dataset.env
+  environment: *django-environment
 
 services:
-
-  beat:
-    <<: *common-service
-    env_file: .env
-    init: true
-    volumes:
-      - .:/code
-    working_dir: /code
-    command: celery -A config beat -l debug
-    stop_signal: SIGKILL
-
-  celery:
-    <<: *common-service
-    env_file: .env
-    init: true
-    volumes:
-      - .:/code
-    working_dir: /code
-    command: celery -A config worker --concurrency=10 --loglevel=debug
-    profiles:
-      - celery
-    stop_signal: SIGKILL
-
   db:
     image: postgres:18.1
     environment:
-      - "POSTGRES_HOST_AUTH_METHOD=trust"
-    expose:
-      - "5432"
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "127.0.0.1:55432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready",
-          "--host=db",
-          "--username=postgres"
-        ]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready --host=db --username=postgres"]
+      interval: 2s
       timeout: 5s
-      retries: 5
+      retries: 30
     init: true
     user: postgres
     volumes:
       - postgres-data:/var/lib/postgresql
 
-  mailpit:
-    image: axllent/mailpit
-    init: true
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-    stop_signal: SIGKILL
+  migrate:
+    <<: *django-service
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    depends_on:
+      db:
+        condition: service_healthy
 
-  redis:
-    image: "redis:alpine"
-    expose:
-      - "6379"
-    init: true
+  dataset:
+    build:
+      context: ../../shared/zellit
+    image: zellit-data:local
+    command:
+      - generate
+      - --spec
+      - /app/data/spec.json
+      - --output
+      - /data/generated
+      - --zip-input
+      - /app/data/zip_codes.csv
     volumes:
-      - redis-data:/data
-    stop_signal: SIGKILL
+      - zellit-generated:/data/generated
+
+  seed:
+    image: zellit-data:local
+    command:
+      - seed
+      - --database-url
+      - postgresql://postgres@db:5432/postgres
+      - --data-dir
+      - /data/generated
+      - --manifest
+      - /app/data/manifest.json
+      - --if-needed
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      dataset:
+        condition: service_completed_successfully
+    volumes:
+      - zellit-generated:/data/generated:ro
+
+  api:
+    <<: *django-service
+    command: ["/code/scripts/serve.sh"]
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8000/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    init: true
 
   utility:
-    <<: *common-service
-    env_file: .env
-    init: true
-    volumes:
-      - .:/code
-    working_dir: /code
-
-  web:
-    <<: *common-service
-    env_file: .env
-    init: true
-    volumes:
-      - .:/code
-    working_dir: /code
-    ports:
-      - "8000:8000"
-    command: "/code/compose-start.sh"
-    tty: true
+    <<: *django-service
+    profiles: ["utility"]
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   postgres-data:
-  redis-data:
+  zellit-generated:

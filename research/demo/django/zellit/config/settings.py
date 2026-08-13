@@ -28,7 +28,7 @@ if READ_DOT_ENV_FILE:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
-LOG_LEVEL = env.log_level("LOG_LEVEL", default="INFO")
+LOG_LEVEL = env.log_level("DJANGO_LOG_LEVEL", default="ERROR")
 
 # Wether or not we're running in a local development environment or not
 LOCAL_DEVELOPMENT = env.bool("LOCAL_DEVELOPMENT", False)
@@ -140,21 +140,36 @@ AUTH_PASSWORD_VALIDATORS = []
 #############################################################################
 # Database
 #############################################################################
-try:
-    DATABASES = {"default": env.dj_db_url("DATABASE_URL")}
-except (ImproperlyConfigured, environs.EnvError):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django_db_geventpool.backends.postgresql_psycopg2",
-            "HOST": env("PGHOST"),
-            "NAME": env("PGDATABASE"),
-            "PASSWORD": env("PGPASSWORD"),
-            "PORT": env.int("PGPORT", default=5432),
-            "USER": env("PGUSER"),
-            "CONN_MAX_AGE": 0,
-            "OPTIONS": {"MAX_CONNS": 20},
-        }
+DATABASE_MODE = env.str("DJANGO_DATABASE_MODE")
+if DATABASE_MODE not in {"standard", "geventpool"}:
+    raise ImproperlyConfigured(
+        "DJANGO_DATABASE_MODE must be 'standard' or 'geventpool'"
+    )
+
+CONN_MAX_AGE = env.int("DJANGO_CONN_MAX_AGE")
+GEVENT_POOL_MAX = env.int("DJANGO_GEVENT_POOL_MAX")
+if CONN_MAX_AGE < 0:
+    raise ImproperlyConfigured("DJANGO_CONN_MAX_AGE must be non-negative")
+if GEVENT_POOL_MAX < 1:
+    raise ImproperlyConfigured("DJANGO_GEVENT_POOL_MAX must be positive")
+
+DATABASES = {
+    "default": {
+        "ENGINE": (
+            "django_db_geventpool.backends.postgresql_psycopg2"
+            if DATABASE_MODE == "geventpool"
+            else "django.db.backends.postgresql"
+        ),
+        "HOST": env("PGHOST"),
+        "NAME": env("PGDATABASE"),
+        "PASSWORD": env("PGPASSWORD"),
+        "PORT": env.int("PGPORT", default=5432),
+        "USER": env("PGUSER"),
+        "CONN_MAX_AGE": CONN_MAX_AGE,
     }
+}
+if DATABASE_MODE == "geventpool":
+    DATABASES["default"]["OPTIONS"] = {"MAX_CONNS": GEVENT_POOL_MAX}
 
 # Default auto keys
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
@@ -280,12 +295,20 @@ REDIS_PORT = env.int("REDIS_PORT", default=6379)
 #############################################################################
 # Cache Setup
 #############################################################################
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}",
+if env.bool("BENCHMARK_MODE", default=False):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "zellit-benchmark",
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}",
+        }
+    }
 
 #############################################################################
 # Configure Celery

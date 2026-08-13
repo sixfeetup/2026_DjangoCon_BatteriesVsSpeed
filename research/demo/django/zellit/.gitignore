@@ -184,6 +184,8 @@ pyrightconfig.json
 .env
 compose.override.yml
 deployed_static
+.runtime.env
+runtime.json
 
 # Tailwind
 static/css/tailwind.min.css
