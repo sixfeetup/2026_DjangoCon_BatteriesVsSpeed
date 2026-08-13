@@ -1,0 +1,95 @@
+x-common-service: &common-service
+  build:
+    context: .
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_started
+
+services:
+
+  beat:
+    <<: *common-service
+    env_file: .env
+    init: true
+    volumes:
+      - .:/code
+    working_dir: /code
+    command: celery -A config beat -l debug
+    stop_signal: SIGKILL
+
+  celery:
+    <<: *common-service
+    env_file: .env
+    init: true
+    volumes:
+      - .:/code
+    working_dir: /code
+    command: celery -A config worker --concurrency=10 --loglevel=debug
+    profiles:
+      - celery
+    stop_signal: SIGKILL
+
+  db:
+    image: postgres:18.1
+    environment:
+      - "POSTGRES_HOST_AUTH_METHOD=trust"
+    expose:
+      - "5432"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready",
+          "--host=db",
+          "--username=postgres"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    init: true
+    user: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
+  mailpit:
+    image: axllent/mailpit
+    init: true
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    stop_signal: SIGKILL
+
+  redis:
+    image: "redis:alpine"
+    expose:
+      - "6379"
+    init: true
+    volumes:
+      - redis-data:/data
+    stop_signal: SIGKILL
+
+  utility:
+    <<: *common-service
+    env_file: .env
+    init: true
+    volumes:
+      - .:/code
+    working_dir: /code
+
+  web:
+    <<: *common-service
+    env_file: .env
+    init: true
+    volumes:
+      - .:/code
+    working_dir: /code
+    ports:
+      - "8000:8000"
+    command: "/code/compose-start.sh"
+    tty: true
+
+volumes:
+  postgres-data:
+  redis-data:
