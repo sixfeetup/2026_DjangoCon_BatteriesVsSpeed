@@ -137,10 +137,10 @@ ENABLE_OVERLOAD=1 RUN_ID=zellit-overload CLEANUP=1 \
   ./scripts/run-compose.sh overload gevent-1
 ```
 
-For an arbitrary host target, use `./scripts/run.sh <profile> <target-url>` and
-supply explicit `RUN_METADATA_JSON`; supply `RUNTIME_JSON_PATH` or
-`RUNTIME_JSON_VALUE` when runtime normalization is available. This requirement
-prevents metadata from silently describing a different local stack.
+For a host target, use `./scripts/run.sh <profile> <target-url>`, supply complete
+explicit `RUN_METADATA_JSON`, and supply either `RUNTIME_JSON_PATH` or
+`RUNTIME_JSON_VALUE`. These requirements prevent metadata from silently
+describing a different local stack.
 
 Every run creates `benchmark/results/<run-id>/config.json`, `raw.json`,
 `metadata.json`, and normally `runtime.json`. Results are ignored by default,

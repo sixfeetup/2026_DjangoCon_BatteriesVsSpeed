@@ -99,6 +99,37 @@ services:
       start_period: 5s
     init: true
 
+  artillery:
+    build:
+      context: ../../shared/zellit/benchmark
+    image: zellit-artillery:local
+    profiles: ["benchmark"]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      RUN_ID: ${RUN_ID:-}
+      RUN_METADATA_JSON: ${RUN_METADATA_JSON:-}
+      RUNTIME_JSON_VALUE: ${RUNTIME_JSON_VALUE:-}
+      EXECUTION_MODE: ${EXECUTION_MODE:-compose}
+      REQUEST_CORPUS_PATH: /data/benchmark_requests.csv
+      ENABLE_OVERLOAD: ${ENABLE_OVERLOAD:-0}
+      SMOKE_RATE: ${SMOKE_RATE:-}
+      SMOKE_DURATION: ${SMOKE_DURATION:-}
+      BASELINE_RATE: ${BASELINE_RATE:-}
+      BASELINE_DURATION: ${BASELINE_DURATION:-}
+      WARMUP_RATE: ${WARMUP_RATE:-}
+      WARMUP_DURATION: ${WARMUP_DURATION:-}
+      STAIRCASE_RATES: ${STAIRCASE_RATES:-}
+      STAIRCASE_DURATION: ${STAIRCASE_DURATION:-}
+      SUSTAINED_RATE: ${SUSTAINED_RATE:-}
+      SUSTAINED_DURATION: ${SUSTAINED_DURATION:-}
+      OVERLOAD_RATE: ${OVERLOAD_RATE:-}
+      OVERLOAD_DURATION: ${OVERLOAD_DURATION:-}
+    volumes:
+      - ../../shared/zellit/data/benchmark_requests.csv:/data/benchmark_requests.csv:ro
+      - ../../shared/zellit/benchmark/results:/benchmark/results
+
   utility:
     <<: *django-service
     profiles: ["utility"]

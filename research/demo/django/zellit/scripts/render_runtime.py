@@ -54,7 +54,7 @@ def normalize(mode: str, environ: dict[str, str] | None = None) -> dict[str, obj
         label = environ.get("RUNTIME_LABEL", "").strip()
         values["runtime_label"] = label
         values["preset"] = "custom"
-        required = ("DJANGO_DATABASE_MODE", "GUNICORN_WORKER_CLASS")
+        required = ("RUNTIME_LABEL", "DJANGO_DATABASE_MODE", "GUNICORN_WORKER_CLASS")
         missing = [name for name in required if not environ.get(name, "").strip()]
         if missing:
             raise ValueError("custom mode requires " + ", ".join(missing))
