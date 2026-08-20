@@ -422,6 +422,13 @@ test('run script records EXECUTION_MODE from the environment', async () => {
   assert.match(script, /EXECUTION_MODE_VALUE="\$\{EXECUTION_MODE:-host\}"/)
 })
 
+test('run script preserves optional normalized runtime metadata', async () => {
+  const script = await readFile(new URL('../scripts/run.sh', import.meta.url), 'utf8')
+  assert.match(script, /RUNTIME_JSON_VALUE/)
+  assert.match(script, /RUNTIME_JSON_PATH/)
+  assert.match(script, /runtime\.json/)
+})
+
 test('run script resolves the host compose file only on demand', async () => {
   const script = await readFile(new URL('../scripts/run.sh', import.meta.url), 'utf8')
   assert.match(script, /compose_file\(\)/)

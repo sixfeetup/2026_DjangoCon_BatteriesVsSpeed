@@ -1,0 +1,23 @@
+<!DOCTYPE html>{% load static tailwind_cli django_vite %}
+<html>
+
+    <head>
+        <title>{% block title %}{% endblock %}</title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        {# We like Tailwind CSS, but you're welcome to switch to something else #}
+        {% tailwind_css %}
+        {% vite_hmr_client %}
+        {% vite_asset 'src/main.js' %}
+        {% block extra_head %}{% endblock %}
+    </head>
+
+    <body>
+        {% block content_wrapper %}
+            {% block content %}{% endblock %}
+        {% endblock %}
+        {% block footer_js %}{% endblock %}
+    </body>
+
+</html>

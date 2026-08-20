@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      main
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+
+env:
+  DOCKER_BUILDKIT: "1"
+  DOCKER_IMAGE: "ghcr.io/${{ github.repository }}"
+
+jobs:
+
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17.1
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports: ['5432:5432']
+        # options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Git - Get Sources
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.14'
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv sync --frozen
+
+      - name: Test with pytest
+        env:
+          DATABASE_URL: 'postgres://postgres:postgres@localhost:${{ job.services.postgres.ports[5432] }}/postgres'
+          SECRET_KEY: 'for-testing-only'
+        run: |
+          uv run python -m pytest
+
+      - name: Lints with pre-commit
+        run: |
+          uv run pre-commit run --all-files
+
+  build:
+    needs: [test]
+    name: Build and Publish Docker image
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Git - Get Sources
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch Git Tags
+        run: |
+          git fetch --depth=1 origin +refs/tags/*:refs/tags/* || true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install Python dependencies
+        run: |
+          uv tool install vinnie
+
+      - name: Bump and Tag our version
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          vinnie patch
+          git push --tags
+
+      - name: Docker - Login
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io \
+            --username ${{ github.actor }} --password-stdin
+
+      - name: Build Docker image
+        run: |
+          TAG=`vinnie version`
+
+          docker build --build-arg TAG=${TAG} \
+            --cache-from=${DOCKER_IMAGE}:latest \
+            --tag ${DOCKER_IMAGE} .
+
+      - name: Docker - Tag
+        run: |
+          TAG=`vinnie version`
+
+          docker tag ${DOCKER_IMAGE} ${DOCKER_IMAGE}:latest
+          docker tag ${DOCKER_IMAGE} ${DOCKER_IMAGE}:${TAG}
+
+      - name: Docker list images
+        run: |
+          docker images
+
+      # - name: Docker - Push
+      #   run: |
+      #     TAG=`vinnie version`
+      #     docker push ${DOCKER_IMAGE}:latest
+      #     docker push ${DOCKER_IMAGE}:${TAG}
+      #
+      #     echo "Pushing ${DOCKER_IMAGE}:$TAG"
+      #     echo "## Docker Image Pushed" >> $GITHUB_STEP_SUMMARY
+      #     echo "Image: ${DOCKER_IMAGE}:$TAG" >> $GITHUB_STEP_SUMMARY

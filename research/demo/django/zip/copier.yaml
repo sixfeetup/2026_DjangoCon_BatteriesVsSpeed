@@ -1,0 +1,19 @@
+# Questions to ask the user
+project_name:
+    type: str
+    help: Your project name
+    default: my_django_project
+
+# Template configuration
+_templates_suffix: .jinja
+_exclude:
+    - "*.pyc"
+    - "__pycache__"
+    - ".git"
+    - ".DS_Store"
+    - "*.egg-info"
+    - "*.pytest_cache"
+    - ".coverage"
+    # Alphakit's own Copier smoke-test workflow; generated projects get
+    # ci.yml (rendered from ci.yml.jinja) instead.
+    - ".github/workflows/template-test.yml"
