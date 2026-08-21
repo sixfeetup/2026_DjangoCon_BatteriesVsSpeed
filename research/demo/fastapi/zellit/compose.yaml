@@ -1,3 +1,16 @@
+name: fastapi-zellit
+
+x-app-service: &app-service
+  build:
+    context: .
+  image: zellit-fastapi:local
+  env_file:
+    - ../../shared/zellit/data/dataset.env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://postgres@db:5432/postgres
+    DB_POOL_SIZE: "20"
+    DB_MAX_OVERFLOW: "0"
+
 services:
   db:
     image: postgres:18.1
@@ -15,5 +28,102 @@ services:
     volumes:
       - fastapi-postgres-data:/var/lib/postgresql
 
+  migrate:
+    <<: *app-service
+    command: ["uv", "run", "--frozen", "alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  dataset:
+    build:
+      context: ../../shared/zellit
+    image: zellit-data:local
+    command:
+      - generate
+      - --spec
+      - /app/data/spec.json
+      - --output
+      - /data/generated
+      - --zip-input
+      - /app/data/zip_codes.csv
+    volumes:
+      - fastapi-zellit-generated:/data/generated
+
+  seed:
+    image: zellit-data:local
+    command:
+      - seed
+      - --database-url
+      - postgresql://postgres@db:5432/postgres
+      - --data-dir
+      - /data/generated
+      - --manifest
+      - /app/data/manifest.json
+      - --if-needed
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      dataset:
+        condition: service_completed_successfully
+    volumes:
+      - fastapi-zellit-generated:/data/generated:ro
+
+  api:
+    <<: *app-service
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import json, urllib.request
+          with urllib.request.urlopen("http://127.0.0.1:8000/health") as response:
+              assert json.load(response) == {"status": "ready"}
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    init: true
+
+  artillery:
+    build:
+      context: ../../shared/zellit/benchmark
+    image: zellit-artillery:local
+    profiles: ["benchmark"]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      RUN_ID: ${RUN_ID:-}
+      RUN_METADATA_JSON: ${RUN_METADATA_JSON:-}
+      RUNTIME_JSON_VALUE: ${RUNTIME_JSON_VALUE:-}
+      EXECUTION_MODE: ${EXECUTION_MODE:-compose}
+      REQUEST_CORPUS_PATH: /data/benchmark_requests.csv
+      ENABLE_OVERLOAD: ${ENABLE_OVERLOAD:-0}
+      SMOKE_RATE: ${SMOKE_RATE:-}
+      SMOKE_DURATION: ${SMOKE_DURATION:-}
+      BASELINE_RATE: ${BASELINE_RATE:-}
+      BASELINE_DURATION: ${BASELINE_DURATION:-}
+      WARMUP_RATE: ${WARMUP_RATE:-}
+      WARMUP_DURATION: ${WARMUP_DURATION:-}
+      STAIRCASE_RATES: ${STAIRCASE_RATES:-}
+      STAIRCASE_DURATION: ${STAIRCASE_DURATION:-}
+      SUSTAINED_RATE: ${SUSTAINED_RATE:-}
+      SUSTAINED_DURATION: ${SUSTAINED_DURATION:-}
+      OVERLOAD_RATE: ${OVERLOAD_RATE:-}
+      OVERLOAD_DURATION: ${OVERLOAD_DURATION:-}
+    volumes:
+      - ../../shared/zellit/data/benchmark_requests.csv:/data/benchmark_requests.csv:ro
+      - ../../shared/zellit/benchmark/results:/benchmark/results
+
 volumes:
   fastapi-postgres-data:
+  fastapi-zellit-generated:
