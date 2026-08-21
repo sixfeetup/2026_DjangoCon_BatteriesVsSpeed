@@ -1,0 +1,44 @@
+setuptools==81.0.0
+Django>5.2,<6.0
+django-click
+django-db-geventpool
+django-extensions
+django-health-check==3.24.0
+django-ninja
+django-typer
+environs[django]
+gevent
+greenlet
+gunicorn
+psycopg2-binary
+whitenoise
+django-tailwind-cli<4.2
+
+# versioning
+vinnie
+
+ipython
+
+# Logging
+django-structlog
+django-tracer
+python-json-logger
+rich
+structlog
+
+# Celery
+celery
+redis
+
+# Linting
+pre-commit
+
+# Testing
+django-test-plus
+factory-boy
+interrogate
+model-bakery
+pytest
+pytest-cov
+pytest-django
+pytest-xdist

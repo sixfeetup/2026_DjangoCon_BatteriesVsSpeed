@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "defaults": {
+    "bind": "0.0.0.0:8000",
+    "workers": 1,
+    "threads": 1,
+    "worker_connections": 1000,
+    "timeout": 30,
+    "keepalive": 2,
+    "conn_max_age": 0,
+    "gevent_pool_max": 20,
+    "access_log_enabled": false,
+    "log_level": "ERROR"
+  },
+  "presets": {
+    "gevent-1": {
+      "runtime_label": "gevent-1",
+      "database_mode": "geventpool",
+      "worker_class": "gevent",
+      "workers": 1,
+      "threads": 1,
+      "worker_connections": 10000,
+      "conn_max_age": 0,
+      "gevent_pool_max": 20,
+      "keepalive": 32
+    },
+    "sync-1": {
+      "runtime_label": "sync-1",
+      "database_mode": "standard",
+      "worker_class": "sync",
+      "workers": 1,
+      "threads": 1,
+      "worker_connections": 1000,
+      "conn_max_age": 60,
+      "gevent_pool_max": 20,
+      "keepalive": 2
+    }
+  }
+}

@@ -162,6 +162,7 @@ RESULT_DIR="$RESULTS_DIR/$RUN_ID"
 CONFIG_PATH="$RESULT_DIR/config.json"
 RAW_PATH="$RESULT_DIR/raw.json"
 METADATA_PATH="$RESULT_DIR/metadata.json"
+RUNTIME_PATH="$RESULT_DIR/runtime.json"
 if ! mkdir -- "$RESULT_DIR"; then
   echo "Benchmark run directory already exists: $RESULT_DIR" >&2
   exit 1
@@ -173,6 +174,13 @@ trap 'handle_signal INT' INT
 trap 'handle_signal TERM' TERM
 
 node "$SCRIPT_DIR/render-config.mjs" "$PROFILE" "$TARGET" "$CONFIG_PATH"
+if [ -n "${RUNTIME_JSON_VALUE:-}" ]; then
+  printf '%s\n' "$RUNTIME_JSON_VALUE" \
+    | node -e 'let s="";process.stdin.on("data",c=>s+=c);process.stdin.on("end",()=>process.stdout.write(JSON.stringify(JSON.parse(s),null,2)+"\n"))' \
+    > "$RUNTIME_PATH"
+elif [ -n "${RUNTIME_JSON_PATH:-}" ]; then
+  cp -- "$RUNTIME_JSON_PATH" "$RUNTIME_PATH"
+fi
 
 STARTED_AT="$(iso_utc_now)"
 EFFECTIVE_PHASES="$(node -e "const fs = require('node:fs'); const config = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(JSON.stringify(config.config.phases));" "$CONFIG_PATH")"

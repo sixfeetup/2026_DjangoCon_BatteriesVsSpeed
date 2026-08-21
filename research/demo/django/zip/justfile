@@ -1,0 +1,199 @@
+set dotenv-load := false
+
+compose := "docker compose run --rm --no-deps utility"
+manage := compose + " python manage.py"
+
+alias shell := console
+alias manage := run
+
+# These can eventually be deprecated
+alias pip-compile := lock
+alias pre-commit := lint
+
+# ----------------------------------------------------------------
+# Just nice-to-haves
+# ----------------------------------------------------------------
+
+# List all available recipes in this justfile
+@_default:
+    just --list
+
+# Format this justfile using just's built-in formatter (requires unstable features)
+@fmt:
+    just --fmt --unstable
+
+# ----------------------------------------------------------------
+# Scripts to rule them all
+#
+# Research:
+# - https://www.encode.io/reports/april-2020#our-workflow-approach
+# - https://github.blog/2015-06-30-scripts-to-rule-them-all/
+# ----------------------------------------------------------------
+
+# Initialize project environment, copy .env file if missing, and build Docker containers
+bootstrap:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ ! -f ".env" ]; then
+        echo ".env created"
+        cp .env-dist .env
+    fi
+
+    docker compose build --force-rm
+
+
+# Open an interactive bash shell in the utility container for debugging and manual commands
+@console:
+    docker compose run --rm utility bash
+
+# Run pre-commit hooks on all files to check code quality and formatting
+@lint:
+    pre-commit run --all-files
+
+# Start the development server with Docker Compose (accepts additional arguments)
+@server *ARGS:
+    just up {{ ARGS }}
+    # docker compose run --rm utility python manage.py migrate --noinput
+    # docker compose up
+
+# Complete project setup: bootstrap environment and rebuild Docker containers
+@setup:
+    just bootstrap
+    docker compose build --force-rm
+    # docker compose run --rm utility python manage.py migrate --noinput
+
+# Run pytest test suite (pass additional pytest arguments as needed)
+@test +ARGS="":
+    just test_pytest {{ ARGS }}
+
+# Apply Django database migrations
+@migrate:
+    docker compose run --rm utility python manage.py migrate --noinput
+
+# Update project: remove containers, pull latest images, rebuild, and run migrations
+@update:
+    docker compose rm --force web utility
+    docker compose pull
+    docker compose build --force-rm
+    docker compose run --rm utility python manage.py migrate --noinput
+
+# ----------------------------------------------------------------
+# Common Docker Compose shortcuts
+# ----------------------------------------------------------------
+
+# Build Docker containers defined in docker-compose.yml
+@build:
+    docker compose build
+
+# Stop and remove Docker containers
+@down:
+    docker compose down
+
+# Resolve and lock Python dependencies from pyproject.toml into uv.lock
+# (also refreshes uv.lock.jinja, the copy shipped into generated projects)
+@lock *ARGS:
+    docker compose run \
+        --entrypoint= \
+        --rm utility \
+            uv lock {{ ARGS }}
+    just _sync-lock-jinja
+
+# Regenerate uv.lock.jinja from uv.lock, templating the root project name so a
+# freshly generated project's lock matches its pyproject name out of the box.
+[private]
+_sync-lock-jinja:
+    #!/usr/bin/env python3
+    lines = open("uv.lock").read().splitlines(keepends=True)
+    out = []
+    replaced = False
+    for line in lines:
+        if not replaced and line.strip() == 'name = "alphakit"':
+            indent = line[: len(line) - len(line.lstrip())]
+            out.append(indent + "name = \"{{{{ project_name | lower | replace('_', '-') }}\"\n")
+            replaced = True
+        else:
+            out.append(line)
+    open("uv.lock.jinja", "w").writelines(out)
+
+# View Docker container logs (pass container names or options as arguments)
+@logs *ARGS:
+    docker compose logs {{ ARGS }}
+
+# Force remove and rebuild Docker containers from scratch
+@rebuild:
+    docker compose rm --force web utility
+    docker compose build --force-rm
+
+# Restart Docker containers (specify container names to restart specific ones)
+@restart *ARGS:
+    docker compose restart {{ ARGS }}
+
+# Start the development server in detached mode by default
+@start +ARGS="--detach":
+    just server {{ ARGS }}
+
+# Stop all running Docker containers
+@stop:
+    docker compose down
+
+# Follow Docker logs showing last 100 lines
+@tail:
+    just logs --follow --tail 100
+
+# Start Docker containers (pass docker-compose up arguments)
+@up *ARGS:
+    docker compose up {{ ARGS }}
+
+# ----------------------------------------------------------------
+# Everything else
+# ----------------------------------------------------------------
+
+# Upgrade all Python dependencies in pyproject.toml to their latest versions
+@pip-compile-upgrade:
+    just lock --upgrade
+
+# Run Django management commands (defaults to showing help)
+@run +ARGS="--help":
+    {{ manage }} {{ ARGS }}
+
+# For LLMs: Execute Python code with Django properly bootstrapped (use -c for inline code)
+run_python *ARGS:
+    {{ compose }} python manage.py run_python {{ ARGS }}
+
+# For LLMs: Execute a Python file with Django properly bootstrapped
+run_python_file file:
+    {{ compose }} python manage.py run_python {{ file }}
+
+# Check docstring coverage with interrogate (requires 100% coverage)
+@test_interrogate:
+    docker compose run --rm utility interrogate -vv --fail-under 100 --whitelist-regex "test_.*" .
+
+# Run pytest tests with output capture disabled (pass pytest arguments)
+@test_pytest +ARGS="":
+    docker compose run --rm utility pytest {{ ARGS }}
+
+# ----------------------------------------------------------------
+# Database Snapshots
+# ----------------------------------------------------------------
+
+# Create a local PostgreSQL database snapshot with the given name
+local-db-snapshot name:
+    @echo 'Creating local snapshot named {{name}}...'
+    docker compose run --rm web pg_dump -Fc -d postgres -h db -U postgres -O -f {{name}}.dump
+    ls -lh {{name}}.dump
+
+# Create a database snapshot from a Kubernetes pod in the specified namespace
+snapshot-db namespace pod name:
+    @echo 'Creating {{name}} snapshot from k8s pod {{pod}}...'
+    kubectl -n {{namespace}} exec -it {{pod}} -- pg_dump -Fc -O -f /code/{{name}}.dump
+    kubectl -n {{namespace}} cp {{pod}}:/code/{{name}}.dump ./{{name}}.dump
+    ls -lh {{name}}.dump
+
+# Restore a database snapshot to the local PostgreSQL instance
+restore-snapshot name:
+    docker compose down -v
+    docker compose up -d db
+    sleep 3
+    docker compose run --rm web pg_restore --no-privileges --no-owner -d postgres {{name}}.dump
+    # Put any project specific commands to sanitize data for local use here

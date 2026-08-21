@@ -1,0 +1,105 @@
+name: django-zip
+
+services:
+  redis:
+    image: redis:8.2.2-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  seed:
+    build: ../../shared/zip
+    image: zip-data:local
+    command: ["seed", "--redis-url", "redis://redis:6379/0", "--data-dir", "/data"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../../shared/zip/data/dataset.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      ZIP_DATA_KEY: zip-codes:v1
+      ZIP_METADATA_KEY: zip-codes:v1:meta
+    volumes:
+      - ../../shared/zip/data:/data:ro
+
+  api:
+    build: .
+    image: django-zip:local
+    command: ["/code/scripts/serve.sh"]
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    env_file:
+      - ../../shared/zip/data/dataset.env
+    environment:
+      ALLOWED_HOSTS: localhost,127.0.0.1,api
+      DATABASE_URL: sqlite:////tmp/zip.sqlite3
+      RUNTIME_LABEL: ${RUNTIME_LABEL:-local-sync}
+      GUNICORN_ACCESS_LOG_ENABLED: ${GUNICORN_ACCESS_LOG_ENABLED:-false}
+      GUNICORN_BIND: ${GUNICORN_BIND:-0.0.0.0:8000}
+      GUNICORN_WORKER_CLASS: ${GUNICORN_WORKER_CLASS:-sync}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-1}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-1}
+      GUNICORN_WORKER_CONNECTIONS: ${GUNICORN_WORKER_CONNECTIONS:-1000}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-30}
+      GUNICORN_KEEPALIVE: ${GUNICORN_KEEPALIVE:-2}
+      LOG_LEVEL: ${LOG_LEVEL:-ERROR}
+      REDIS_HOST: redis
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: benchmark-only-secret
+      ZIP_DATA_KEY: zip-codes:v1
+      ZIP_METADATA_KEY: zip-codes:v1:meta
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import json, urllib.request
+          with urllib.request.urlopen("http://127.0.0.1:8000/health") as response:
+              assert json.load(response) == {"status": "ready"}
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  artillery:
+    image: zip-artillery:local
+    profiles:
+      - benchmark
+    build: ../../shared/zip/benchmark
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      PREFIX_CORPUS_PATH: /data/benchmark_prefixes.csv
+      RUN_ID: ${RUN_ID:-}
+      GIT_REVISION: ${GIT_REVISION:-}
+      TARGET_IMPLEMENTATION: ${TARGET_IMPLEMENTATION:-django-zip}
+      PYTHON_VERSION: ${PYTHON_VERSION:-}
+      APPLICATION_VERSION: ${APPLICATION_VERSION:-}
+      FRAMEWORK_VERSION: ${FRAMEWORK_VERSION:-}
+      SERVER_VERSION: ${SERVER_VERSION:-}
+      REDIS_VERSION: ${REDIS_VERSION:-}
+      SMOKE_RATE: ${SMOKE_RATE:-}
+      SMOKE_DURATION: ${SMOKE_DURATION:-}
+      BASELINE_RATE: ${BASELINE_RATE:-}
+      BASELINE_DURATION: ${BASELINE_DURATION:-}
+      STAIRCASE_RATES: ${STAIRCASE_RATES:-}
+      SUSTAINED_RATE: ${SUSTAINED_RATE:-}
+      SUSTAINED_DURATION: ${SUSTAINED_DURATION:-}
+      OVERLOAD_RATE: ${OVERLOAD_RATE:-}
+      OVERLOAD_DURATION: ${OVERLOAD_DURATION:-}
+      ENABLE_OVERLOAD: ${ENABLE_OVERLOAD:-0}
+      EXECUTION_MODE: docker
+      RUNTIME_JSON_VALUE: ${RUNTIME_JSON_VALUE:-}
+    volumes:
+      - ../../shared/zip/data/benchmark_prefixes.csv:/data/benchmark_prefixes.csv:ro
+      - ../../shared/zip/benchmark/results:/benchmark/results

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "defaults": {
+    "bind": "0.0.0.0:8000",
+    "workers": 1,
+    "threads": 1,
+    "worker_connections": 1000,
+    "timeout": 30,
+    "keepalive": 2,
+    "access_log_enabled": false,
+    "log_level": "ERROR"
+  },
+  "presets": {
+    "gevent-1": {
+      "runtime_label": "gevent-1",
+      "worker_class": "gevent",
+      "workers": 1,
+      "threads": 1,
+      "worker_connections": 10000,
+      "keepalive": 32
+    },
+    "sync-1": {
+      "runtime_label": "sync-1",
+      "worker_class": "sync",
+      "workers": 1,
+      "threads": 1,
+      "worker_connections": 1000,
+      "keepalive": 2
+    }
+  }
+}

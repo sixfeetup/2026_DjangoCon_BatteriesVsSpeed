@@ -1,0 +1,501 @@
+code,city,state
+00001,West Annetteton,ZZ
+00002,Curtisport,ZZ
+00004,Williamburgh,ZZ
+00005,West Rebeccafort,ZZ
+00006,Leonberg,ZZ
+00007,New Antonioshire,ZZ
+00010,East Jenniferport,ZZ
+00011,Davidborough,ZZ
+00012,Alexanderborough,ZZ
+00013,Lake Lynnshire,ZZ
+00014,New Patrick,ZZ
+00015,East Nicholas,ZZ
+00016,Clarkeside,ZZ
+00018,Lake Larry,ZZ
+00019,South Diamondtown,ZZ
+00021,West Jimmychester,ZZ
+00022,Dodsonside,ZZ
+00023,South Tracychester,ZZ
+00024,Lake Royland,ZZ
+00025,Cruzborough,ZZ
+00026,Lake Denisefurt,ZZ
+00027,East Luke,ZZ
+00028,Gomezhaven,ZZ
+00029,New Nancyborough,ZZ
+00032,South Jamestown,ZZ
+00034,Port Jenniferport,ZZ
+00036,Gloverhaven,ZZ
+00037,Lake Kevin,ZZ
+00038,Justinchester,ZZ
+00040,South Teresaview,ZZ
+00041,West Steven,ZZ
+00042,North Lisafurt,ZZ
+00043,Lake Alejandroshire,ZZ
+00044,Ellisville,ZZ
+00047,Raymondfurt,ZZ
+00049,Lake Jason,ZZ
+00050,Comptonmouth,ZZ
+00051,Mckenziemouth,ZZ
+00053,Port Mathew,ZZ
+00055,Michaelaview,ZZ
+00056,Port Kathryn,ZZ
+00059,Lake Brianshire,ZZ
+00061,North Sarashire,ZZ
+00062,Reynoldsborough,ZZ
+00064,North Andrew,ZZ
+00066,Jacksonburgh,ZZ
+00068,Englishmouth,ZZ
+00069,Donaldside,ZZ
+00070,Meganbury,ZZ
+00072,Lake Donald,ZZ
+00075,Reyesborough,ZZ
+00076,Mccoymouth,ZZ
+00077,Christophermouth,ZZ
+00078,Juliefort,ZZ
+00079,Johnmouth,ZZ
+00080,North Dawnchester,ZZ
+00081,Williamhaven,ZZ
+00082,New Jasmineburgh,ZZ
+00083,Curryborough,ZZ
+00084,Burkeside,ZZ
+00086,Roberthaven,ZZ
+00087,Robertmouth,ZZ
+00088,Gonzalezport,ZZ
+00092,Susanshire,ZZ
+00093,Wilkinston,ZZ
+00096,Lake Garrettview,ZZ
+00097,East Kevinbury,ZZ
+00098,New Breannafort,ZZ
+00102,South Ronnieside,ZZ
+00103,Markfort,ZZ
+00104,New Patrick,ZZ
+00105,West Joseph,ZZ
+00109,West Ashleeton,ZZ
+00115,Dennistown,ZZ
+00119,Port Eugene,ZZ
+00122,Thomashaven,ZZ
+00124,Williamsfort,ZZ
+00125,Lake Julie,ZZ
+00128,Cameronstad,ZZ
+00130,Lake Charlesview,ZZ
+00131,New Jonathan,ZZ
+00134,Port Paulaville,ZZ
+00136,Richardsonstad,ZZ
+00138,Kurttown,ZZ
+00140,Lake Ronaldport,ZZ
+00141,North Scott,ZZ
+00142,Thomaston,ZZ
+00143,Danaview,ZZ
+00144,Griffinville,ZZ
+00145,East Markmouth,ZZ
+00147,East Phyllisland,ZZ
+00148,South Oscar,ZZ
+00149,North Erik,ZZ
+00152,Kennethshire,ZZ
+00153,New Ericville,ZZ
+00154,West Alan,ZZ
+00155,New Brianburgh,ZZ
+00157,South Jennifer,ZZ
+00158,Sharonbury,ZZ
+00159,Lake Davidborough,ZZ
+00160,South Valerieborough,ZZ
+00164,Tamaraside,ZZ
+00166,Alexstad,ZZ
+00168,Port Randallton,ZZ
+00169,Vanessabury,ZZ
+00170,Parksshire,ZZ
+00171,Davismouth,ZZ
+00172,South Ashleyberg,ZZ
+00174,Lambtown,ZZ
+00175,West Kenneth,ZZ
+00177,Hansenstad,ZZ
+00178,West Cindyland,ZZ
+00180,Shannonborough,ZZ
+00182,South Joseph,ZZ
+00185,East Jessicaview,ZZ
+00186,North Erika,ZZ
+00192,Port Ericamouth,ZZ
+00197,Port Josephshire,ZZ
+00199,West Rodneymouth,ZZ
+00201,East James,ZZ
+00202,Rosemouth,ZZ
+00203,South Kristinafort,ZZ
+00204,West Joseph,ZZ
+00205,Meganborough,ZZ
+00206,Chloefurt,ZZ
+00209,Cruzland,ZZ
+00211,East Shannonside,ZZ
+00212,Jillianstad,ZZ
+00213,South Robertville,ZZ
+00214,Stephanieshire,ZZ
+00215,North Elizabeth,ZZ
+00216,Meganstad,ZZ
+00218,Erikfurt,ZZ
+00219,New Karen,ZZ
+00220,Bairdview,ZZ
+00221,Reedtown,ZZ
+00222,Brentbury,ZZ
+00224,Matthewchester,ZZ
+00225,New Anthony,ZZ
+00230,Wesleyville,ZZ
+00232,Clarkshire,ZZ
+00234,Michaelchester,ZZ
+00235,Lake Samantha,ZZ
+00236,Lesliefort,ZZ
+00237,Mcclureton,ZZ
+00240,East Christopher,ZZ
+00242,West Kathleenton,ZZ
+00243,Latoyabury,ZZ
+00244,Navarrohaven,ZZ
+00248,West Danielside,ZZ
+00249,Meyersstad,ZZ
+00250,Stephaniefort,ZZ
+00251,Lake Philip,ZZ
+00252,Willisfurt,ZZ
+00253,North Michelle,ZZ
+00254,Jonathantown,ZZ
+00255,North Danielbury,ZZ
+00259,Martinezville,ZZ
+00260,Longmouth,ZZ
+00261,East John,ZZ
+00263,Cynthiaview,ZZ
+00264,Port Pamela,ZZ
+00265,Markshire,ZZ
+00266,Lake Lori,ZZ
+00267,Wilkinsonchester,ZZ
+00268,New Thomas,ZZ
+00270,Nicholaschester,ZZ
+00271,Joelfurt,ZZ
+00275,Lake Scott,ZZ
+00276,West Clayton,ZZ
+00279,Lake Timothyfurt,ZZ
+00284,New Sandramouth,ZZ
+00288,North Charlesville,ZZ
+00290,East Arthur,ZZ
+00291,New Christopher,ZZ
+00292,North Christophermouth,ZZ
+00293,South Petermouth,ZZ
+00294,Elizabethshire,ZZ
+00295,North Mark,ZZ
+00296,New Tarafort,ZZ
+00297,East Perryburgh,ZZ
+00299,Lake Alexanderfort,ZZ
+00301,Jameshaven,ZZ
+00302,Turnerton,ZZ
+00305,Thompsonport,ZZ
+00311,Greenville,ZZ
+00314,Lake Adamville,ZZ
+00315,East Juliemouth,ZZ
+00317,Jessicastad,ZZ
+00319,Monicaborough,ZZ
+00324,East Gabrielaport,ZZ
+00327,North Melindaton,ZZ
+00329,Ryanside,ZZ
+00331,Johnstontown,ZZ
+00332,Davisfort,ZZ
+00334,New Brenda,ZZ
+00336,Hooperfurt,ZZ
+00337,Pamelafort,ZZ
+00338,Moorefurt,ZZ
+00339,Duncanfort,ZZ
+00341,East Kathleenfurt,ZZ
+00342,Wardfurt,ZZ
+00345,West Sherrimouth,ZZ
+00347,Wilsonchester,ZZ
+00351,Forbestown,ZZ
+00352,Anthonyfurt,ZZ
+00353,Willisbury,ZZ
+00355,New Cynthia,ZZ
+00356,Travisberg,ZZ
+00357,Andersonmouth,ZZ
+00359,Zacharyhaven,ZZ
+00360,Hessmouth,ZZ
+00365,Leslieside,ZZ
+00366,Glassfort,ZZ
+00368,South David,ZZ
+00369,Port Richard,ZZ
+00371,Lake Lisa,ZZ
+00373,Jessicafort,ZZ
+00375,Elizabethstad,ZZ
+00376,Mistyhaven,ZZ
+00381,Conwayville,ZZ
+00382,North Cory,ZZ
+00383,Karenbury,ZZ
+00384,Valdezport,ZZ
+00386,Scottberg,ZZ
+00390,West Anthony,ZZ
+00391,Wilsonmouth,ZZ
+00392,Port Gregory,ZZ
+00393,New David,ZZ
+00398,Shafferhaven,ZZ
+00400,West Wendy,ZZ
+00401,Dianashire,ZZ
+00406,South Nancy,ZZ
+00407,West Alecton,ZZ
+00408,Rebeccachester,ZZ
+00410,Christineshire,ZZ
+00411,Barbaraland,ZZ
+00413,New Jamesfort,ZZ
+00416,Kristenberg,ZZ
+00417,North Kristyburgh,ZZ
+00418,Jenniferberg,ZZ
+00419,Port Samanthabury,ZZ
+00426,Lindseyton,ZZ
+00427,Heatherchester,ZZ
+00428,South Mariaberg,ZZ
+00430,South Valerie,ZZ
+00432,Taylorfort,ZZ
+00436,Hubbardtown,ZZ
+00438,Wallaceton,ZZ
+00439,East Bryan,ZZ
+00441,North Amandaview,ZZ
+00442,North Amberchester,ZZ
+00445,West Amanda,ZZ
+00447,South Colleenland,ZZ
+00449,Alexismouth,ZZ
+00455,Hillview,ZZ
+00457,Serranoside,ZZ
+00458,Allenburgh,ZZ
+00459,East Bryantown,ZZ
+00460,Markbury,ZZ
+00461,Matthewville,ZZ
+00464,Jacobberg,ZZ
+00465,Fisherfort,ZZ
+00468,East Amandashire,ZZ
+00470,East Georgeburgh,ZZ
+00472,Lake James,ZZ
+00476,Lake Carrie,ZZ
+00477,Jacquelineland,ZZ
+00480,Jonesborough,ZZ
+00481,Michaelland,ZZ
+00484,North Alanhaven,ZZ
+00492,West Williebury,ZZ
+00493,East Heather,ZZ
+00494,Kerrshire,ZZ
+00495,Lisaburgh,ZZ
+00496,Jenkinshaven,ZZ
+00498,West Carolville,ZZ
+00500,Jenniferport,ZZ
+00504,New Rhonda,ZZ
+00508,Garrettville,ZZ
+00510,Hughesfort,ZZ
+00512,Port Lindseyside,ZZ
+00514,Port Chelseaville,ZZ
+00518,Robertbury,ZZ
+00519,Lake Justinborough,ZZ
+00522,Port Alexander,ZZ
+00523,Robinsonchester,ZZ
+00524,Johnnyport,ZZ
+00525,Hoganfurt,ZZ
+00526,Port Kristen,ZZ
+00530,Norriston,ZZ
+00531,Port Sandraview,ZZ
+00533,East Carl,ZZ
+00535,North Anthonyfort,ZZ
+00536,New Scott,ZZ
+00537,East Gregory,ZZ
+00544,Melissahaven,ZZ
+00545,New Elizabeth,ZZ
+00547,Jonathanport,ZZ
+00548,Garzaside,ZZ
+00549,Port Lisa,ZZ
+00550,Baldwinmouth,ZZ
+00553,Morganshire,ZZ
+00556,Wilsonshire,ZZ
+00557,South Charles,ZZ
+00558,North Todd,ZZ
+00561,Danielleberg,ZZ
+00563,Wrightmouth,ZZ
+00564,Jameschester,ZZ
+00566,North Dana,ZZ
+00567,East Amanda,ZZ
+00568,Andreahaven,ZZ
+00569,Oliverland,ZZ
+00570,Tiffanyville,ZZ
+00571,Amandastad,ZZ
+00572,Mooreburgh,ZZ
+00573,Edwardton,ZZ
+00574,West Ritaport,ZZ
+00575,Amyview,ZZ
+00581,Lake Dana,ZZ
+00582,New Bradley,ZZ
+00585,Torresview,ZZ
+00590,Suzannefurt,ZZ
+00592,Brownville,ZZ
+00595,Williamsborough,ZZ
+00597,Parkside,ZZ
+00598,Greenmouth,ZZ
+00599,Ruizville,ZZ
+00600,West Kennethport,ZZ
+00601,Valdezstad,ZZ
+00605,Lake Williamchester,ZZ
+00606,Lake Paulton,ZZ
+00607,New Danielle,ZZ
+00609,Sarahside,ZZ
+00611,Port Margaretside,ZZ
+00613,Lake Christophermouth,ZZ
+00614,North Thomasfurt,ZZ
+00615,Sullivanville,ZZ
+00616,East Angela,ZZ
+00621,Garciaton,ZZ
+00622,Robertside,ZZ
+00627,Williamchester,ZZ
+00630,East Ashley,ZZ
+00631,Woodardhaven,ZZ
+00634,Lake Patrickland,ZZ
+00635,Robinside,ZZ
+00636,Doyleborough,ZZ
+00642,Larryland,ZZ
+00643,Theresahaven,ZZ
+00644,Johnnyburgh,ZZ
+00647,Schwartzport,ZZ
+00650,West Megan,ZZ
+00651,West Richardview,ZZ
+00653,North Leeside,ZZ
+00654,Lloydbury,ZZ
+00655,Newmanstad,ZZ
+00656,East Brentton,ZZ
+00659,Lake Robert,ZZ
+00662,Lopezfort,ZZ
+00663,Vaughanstad,ZZ
+00666,Christopherstad,ZZ
+00667,Port Angela,ZZ
+00668,Port Elizabethmouth,ZZ
+00669,Reneemouth,ZZ
+00673,Jeffreymouth,ZZ
+00677,Aaronton,ZZ
+00679,New Scottland,ZZ
+00683,Terryfort,ZZ
+00684,Huffmanton,ZZ
+00685,Maysside,ZZ
+00687,West Michaelfurt,ZZ
+00688,Mccluremouth,ZZ
+00689,Danielleville,ZZ
+00692,Charlesland,ZZ
+00693,Sullivanstad,ZZ
+00694,East Sandraberg,ZZ
+00698,Port Kellymouth,ZZ
+00699,Meganbury,ZZ
+00707,Baileytown,ZZ
+00708,Evansland,ZZ
+00710,South Scott,ZZ
+00711,Nicholasberg,ZZ
+00717,East Mariah,ZZ
+00718,Zimmermanville,ZZ
+00719,South Michelle,ZZ
+00721,Deckerchester,ZZ
+00727,Michaelfurt,ZZ
+00728,East Alanview,ZZ
+00729,West Christopherfurt,ZZ
+00730,Port Danielport,ZZ
+00732,North Brandi,ZZ
+00733,Lake Jonathanburgh,ZZ
+00735,Davidmouth,ZZ
+00736,New Lisahaven,ZZ
+00737,South Robert,ZZ
+00741,South Valerie,ZZ
+00744,South Kevinside,ZZ
+00745,South Johnnyville,ZZ
+00747,New Stephanieborough,ZZ
+00748,Reynoldsville,ZZ
+00753,Lake Maureenville,ZZ
+00754,Michaelmouth,ZZ
+00755,Robertside,ZZ
+00756,Port Patriciastad,ZZ
+00757,Lake Thomasborough,ZZ
+00763,North Samantha,ZZ
+00764,Watersport,ZZ
+00766,Smithtown,ZZ
+00769,North Christophertown,ZZ
+00773,South Veronica,ZZ
+00774,Annmouth,ZZ
+00775,East Miguelchester,ZZ
+00776,North Tammystad,ZZ
+00779,Lake Shaneborough,ZZ
+00780,Alexanderburgh,ZZ
+00781,South Paulfort,ZZ
+00783,Rogerston,ZZ
+00786,Martinezview,ZZ
+00787,Dustintown,ZZ
+00789,North Joshua,ZZ
+00791,New Chelsea,ZZ
+00793,Lake Mary,ZZ
+00794,Gravesview,ZZ
+00795,Josephmouth,ZZ
+00798,Butlerville,ZZ
+00799,Port Joshuamouth,ZZ
+00800,Hayesborough,ZZ
+00801,Milesfort,ZZ
+00806,Sloanborough,ZZ
+00808,Port Gregoryshire,ZZ
+00809,Barbermouth,ZZ
+00810,Alexandraborough,ZZ
+00811,East Savannahville,ZZ
+00812,Timothyberg,ZZ
+00816,Martinezborough,ZZ
+00818,West William,ZZ
+00820,West Victoriahaven,ZZ
+00824,South Shelbyhaven,ZZ
+00826,Bellborough,ZZ
+00828,Port Amanda,ZZ
+00829,East Cathyberg,ZZ
+00830,East Derek,ZZ
+00831,Lake Marcus,ZZ
+00832,Becktown,ZZ
+00833,Grantside,ZZ
+00835,West Rebecca,ZZ
+00842,North Stephanieport,ZZ
+00849,Carterbury,ZZ
+00850,Kevinmouth,ZZ
+00851,Mitchelltown,ZZ
+00853,Sanchezstad,ZZ
+00854,New Lisa,ZZ
+00860,Brooksshire,ZZ
+00861,West Jenniferhaven,ZZ
+00863,Coffeyfort,ZZ
+00864,Mariashire,ZZ
+00865,Marychester,ZZ
+00869,North Mark,ZZ
+00872,Martinport,ZZ
+00874,Gonzalezfurt,ZZ
+00875,Port Melissatown,ZZ
+00878,Delgadohaven,ZZ
+00879,New Marcus,ZZ
+00880,North Phillipside,ZZ
+00881,Bonillachester,ZZ
+00883,New Sandra,ZZ
+00884,Angelamouth,ZZ
+00886,Lake Andrewmouth,ZZ
+00889,North Hunter,ZZ
+00890,New Samantha,ZZ
+00891,Kingland,ZZ
+00892,North Chris,ZZ
+00893,North Jenniferfurt,ZZ
+00895,East Ericbury,ZZ
+00897,Henrymouth,ZZ
+00899,Joshuachester,ZZ
+00900,Justinfort,ZZ
+00901,Brownside,ZZ
+00904,Gomezstad,ZZ
+00905,East Justinton,ZZ
+00906,Taylorshire,ZZ
+00909,South Miguelborough,ZZ
+00912,East Bonnie,ZZ
+00914,Port Sara,ZZ
+00918,Paultown,ZZ
+00921,Emilyton,ZZ
+00922,East Jennifer,ZZ
+00926,South Aprilside,ZZ
+00927,Lake Jacob,ZZ
+00928,Port Troy,ZZ
+00929,New Desiree,ZZ
+00931,East Ryan,ZZ
+00936,South Rebecca,ZZ
+00937,West Alexandriashire,ZZ
+00938,West Robertfort,ZZ
+00939,Port Emily,ZZ
+00940,East Alexandraborough,ZZ
+00943,South Joshuaburgh,ZZ
+00948,Leonside,ZZ
+46201,Indianapolis,IN
