@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import event, insert
@@ -103,7 +103,7 @@ async def test_readiness_requires_exact_metadata(db_session) -> None:
 
     assert await repository.is_ready(db_session, identity) is False
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     await db_session.execute(
         insert(DatasetMetadata).values(
             id=1,

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
-from datetime import datetime, timedelta, timezone
 import os
-from pathlib import Path
 import subprocess
+from collections.abc import AsyncIterator, Iterator
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -74,7 +74,7 @@ async def db_session(integration_engine) -> AsyncIterator[AsyncSession]:
 
 @pytest_asyncio.fixture
 async def api_data(db_session: AsyncSession) -> list[int]:
-    base = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+    base = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
     await db_session.execute(
         insert(ZipCode),
         [

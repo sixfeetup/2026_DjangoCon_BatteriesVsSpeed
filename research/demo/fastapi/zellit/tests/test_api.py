@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -22,7 +22,7 @@ class StubRepository:
         self.calls.append((zip_code, limit, offset))
         if self.error:
             raise self.error
-        timestamp = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+        timestamp = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
         return {
             "zip_code": {
                 "code": zip_code,
