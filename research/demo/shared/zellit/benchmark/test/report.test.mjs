@@ -31,6 +31,7 @@ async function createRunFixture({
   runId = `fastapi-zellit-${profile}-20260822T120000Z`,
   directoryName = runId,
   status = 'succeeded',
+  exitStatus = status === 'failed' ? 1 : 0,
   includeP99 = true,
   omit = [],
   omitMetricGroups = [],
@@ -76,6 +77,7 @@ async function createRunFixture({
     started_at: '2026-08-22T12:00:00Z',
     completed_at: '2026-08-22T12:05:00Z',
     status,
+    exit_status: exitStatus,
     profile,
     implementation: 'fastapi-zellit',
     git_revision: 'abc123',
@@ -127,6 +129,8 @@ test('report data loads and normalizes benchmark artifacts', async () => {
   assert.equal(run.runId, 'fastapi-zellit-baseline-20260822T120000Z')
   assert.equal(run.artifactDirectory, runDirectory)
   assert.equal(run.profile, 'baseline')
+  assert.equal(run.status, 'succeeded')
+  assert.equal(run.exit_status, 0)
   assert.equal(run.gitRevision, 'abc123')
   assert.deepEqual(run.dataset, {
     schema_version: '1',
@@ -218,10 +222,26 @@ test('report data rejects a missing artifact with its filename', async () => {
   await assert.rejects(loadRun(runDirectory), /Cannot read .*runtime\.json:/)
 })
 
-test('report data rejects non-succeeded metadata', async () => {
-  const runDirectory = await createRunFixture({status: 'running'})
+test('report data strict default rejects failed metadata', async () => {
+  const runDirectory = await createRunFixture({profile: 'overload', status: 'failed'})
 
   await assert.rejects(loadRun(runDirectory), /metadata\.status must be succeeded/)
+})
+
+test('report data with allowFailed accepts and normalizes a failed overload', async () => {
+  const runDirectory = await createRunFixture({profile: 'overload', status: 'failed'})
+  const run = await loadRun(runDirectory, {allowFailed: true})
+
+  assert.equal(run.profile, 'overload')
+  assert.equal(run.status, 'failed')
+  assert.equal(run.exit_status, 1)
+  assert.equal(run.metrics.requests, 100)
+})
+
+test('report data with allowFailed still rejects non-final metadata', async () => {
+  const runDirectory = await createRunFixture({status: 'running', exitStatus: null})
+
+  await assert.rejects(loadRun(runDirectory, {allowFailed: true}), /metadata\.status must be succeeded or failed/)
 })
 
 test('report data rejects mismatched directory and run IDs', async () => {
@@ -296,6 +316,29 @@ test('report CLI writes HTML with required profiles and creates parent directori
   }
 })
 
+test('report CLI accepts failed overload evidence and renders failure warning', async () => {
+  const runDirectories = await Promise.all([
+    createRunFixture({profile: 'baseline'}),
+    createRunFixture({profile: 'staircase'}),
+    createRunFixture({profile: 'sustained'}),
+    createRunFixture({profile: 'overload', status: 'failed'})
+  ])
+  const outputPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'zellit-report-html-')), 'report.html')
+
+  const result = spawnSync(process.execPath, [generateReportScript, outputPath, ...runDirectories], {
+    cwd: benchmarkDir,
+    encoding: 'utf8'
+  })
+
+  assert.equal(result.status, 0, result.stderr || result.stdout)
+  const html = await readFile(outputPath, 'utf8')
+  assert.match(html, /FAILED/)
+  assert.match(html, /failed its acceptance condition/i)
+  assert.match(html, /metrics are preserved as failure evidence/i)
+  assert.match(html, /Exit status/)
+  assert.doesNotMatch(html, /four successful benchmark profiles/i)
+})
+
 test('report CLI rejects duplicate profiles', async () => {
   const runDirectories = await Promise.all([
     createRunFixture({profile: 'baseline'}),
@@ -329,6 +372,26 @@ test('report CLI rejects a missing required profile', async () => {
 
   assert.notEqual(result.status, 0)
   assert.match(result.stderr || result.stdout, /Missing required profiles: overload/)
+})
+
+test('report CLI rejects failed non-overload profiles', async () => {
+  for (const profile of ['baseline', 'staircase', 'sustained']) {
+    const runDirectories = await Promise.all([
+      createRunFixture({profile: 'baseline', status: profile === 'baseline' ? 'failed' : 'succeeded'}),
+      createRunFixture({profile: 'staircase', status: profile === 'staircase' ? 'failed' : 'succeeded'}),
+      createRunFixture({profile: 'sustained', status: profile === 'sustained' ? 'failed' : 'succeeded'}),
+      createRunFixture({profile: 'overload', status: 'failed'})
+    ])
+    const outputPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'zellit-report-html-')), `${profile}.html`)
+
+    const result = spawnSync(process.execPath, [generateReportScript, outputPath, ...runDirectories], {
+      cwd: benchmarkDir,
+      encoding: 'utf8'
+    })
+
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr || result.stdout, new RegExp(`${profile} profile must have status succeeded`))
+  }
 })
 
 function escapeRegExp(value) {

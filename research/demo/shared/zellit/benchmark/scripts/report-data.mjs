@@ -41,7 +41,7 @@ function sumSuccessfulCodes(counters) {
   return {total, hasSuccessfulCode}
 }
 
-export async function loadRun(runDirectory) {
+export async function loadRun(runDirectory, {allowFailed = false} = {}) {
   const artifactDirectory = path.resolve(runDirectory)
   const config = requiredObject(await readJson(artifactDirectory, 'config.json'), 'config')
   const raw = requiredObject(await readJson(artifactDirectory, 'raw.json'), 'raw')
@@ -50,7 +50,11 @@ export async function loadRun(runDirectory) {
 
   const runId = path.basename(artifactDirectory)
   if (metadata.run_id !== runId) throw new Error('metadata.run_id must match the run directory name')
-  if (metadata.status !== 'succeeded') throw new Error('metadata.status must be succeeded')
+  if (allowFailed) {
+    if (!['succeeded', 'failed'].includes(metadata.status)) throw new Error('metadata.status must be succeeded or failed')
+  } else if (metadata.status !== 'succeeded') {
+    throw new Error('metadata.status must be succeeded')
+  }
 
   const configuredPhases = requiredObject(config.config, 'config.config').phases
   if (!Array.isArray(configuredPhases)) throw new Error('config.config.phases must be an array')
@@ -75,6 +79,7 @@ export async function loadRun(runDirectory) {
     artifactDirectory,
     profile: metadata.profile,
     status: metadata.status,
+    exit_status: nullableNumber(metadata.exit_status),
     startedAt: metadata.started_at,
     completedAt: metadata.completed_at,
     implementation: metadata.implementation,

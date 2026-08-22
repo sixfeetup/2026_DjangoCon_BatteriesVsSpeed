@@ -309,3 +309,7 @@ Expected: tests PASS; raw result directories remain ignored; the report commit c
 - [ ] **Step 8: Record presentation-worthy benchmark observations as needs-review**
 
 For each headline observation actually used in the final summary, call `fastapi_claim_record` with category `benchmark-observation`, status `needs-review`, a caveat limiting it to this workload and single trial, and evidence IDs containing the four result directory IDs plus the report path. Do not mark the report presentation-ready before speaker review.
+
+## Approved failure-aware amendment
+
+Baseline, staircase, and sustained must be `succeeded` before report generation. Overload may be `succeeded` or `failed` if its four artifacts are complete; when failed, the generated report must prominently show the failed status, exit status, and preserved failure metrics as evidence rather than treat the suite as fully successful. No retry is performed for the preserved overload evidence.

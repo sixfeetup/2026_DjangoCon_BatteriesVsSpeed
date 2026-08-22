@@ -78,3 +78,7 @@ Before delivery:
 6. Confirm the Compose project is cleaned up.
 
 The final response provides the report path, run artifact directories, concise headline observations, and any caveats or failures.
+
+## Approved failure-aware amendment
+
+Baseline, staircase, and sustained must have succeeded before report generation. The overload profile may be reported with `status=failed` when its artifact set is complete, and the HTML must prominently identify that failed status while preserving the recorded failure metrics and exit status as evidence. No overload retry occurs for this report path.

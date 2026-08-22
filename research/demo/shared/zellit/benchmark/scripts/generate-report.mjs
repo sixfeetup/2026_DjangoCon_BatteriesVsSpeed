@@ -34,6 +34,31 @@ function sortRuns(runs) {
   return [...runs].sort((left, right) => profileOrder.indexOf(left.profile) - profileOrder.indexOf(right.profile))
 }
 
+function statusLabel(run) {
+  return run.status === 'failed' ? 'FAILED' : 'SUCCEEDED'
+}
+
+function validateRunStatuses(runs) {
+  for (const run of runs) {
+    if (run.profile === 'overload') {
+      if (!['succeeded', 'failed'].includes(run.status)) throw new Error('overload profile must have status succeeded or failed')
+      continue
+    }
+    if (run.status !== 'succeeded') throw new Error(`${run.profile} profile must have status succeeded`)
+  }
+}
+
+function renderOverloadWarning(overloadRun) {
+  if (!overloadRun || overloadRun.status !== 'failed') return ''
+  return `
+    <section class="warning" aria-live="polite">
+      <p class="eyebrow">FAILED overload evidence preserved</p>
+      <h2>Overload acceptance condition failed</h2>
+      <p>The overload profile failed its acceptance condition (<code>vusers.failed == 0</code>) and exited with status ${escapeHtml(formatValue(overloadRun.exit_status))}. The metrics are preserved as failure evidence and no retry occurred.</p>
+    </section>
+  `
+}
+
 function formatValue(value, {suffix = '', digits = 2, percent = false} = {}) {
   if (value === null || value === undefined) return 'Not available'
   if (percent) return `${(value * 100).toFixed(digits)}%`
@@ -86,7 +111,8 @@ function renderEnvironmentSection(runs, generatedAt) {
     ['Artifact directory', ...runs.map((run) => run.artifactDirectory)],
     ['Started at', ...runs.map((run) => run.startedAt)],
     ['Completed at', ...runs.map((run) => run.completedAt)],
-    ['Status', ...runs.map((run) => run.status)]
+    ['Status', ...runs.map((run) => statusLabel(run))],
+    ['Exit status', ...runs.map((run) => formatValue(run.exit_status))]
   ]
   return `
     <section>
@@ -169,7 +195,11 @@ function renderRunCard(run) {
           <p class="eyebrow">${escapeHtml(profileLabels[run.profile])}</p>
           <h3>${escapeHtml(run.runId)}</h3>
         </div>
-        <p class="artifact-path">${escapeHtml(run.artifactDirectory)}</p>
+        <div class="card-meta">
+          <p class="status-pill status-${escapeHtml(run.status)}">${escapeHtml(statusLabel(run))}</p>
+          <p class="artifact-path">Exit status: ${escapeHtml(formatValue(run.exit_status))}</p>
+          <p class="artifact-path">${escapeHtml(run.artifactDirectory)}</p>
+        </div>
       </div>
       <p>${escapeHtml(formatLoad(run))}</p>
       <dl class="metrics-grid">
@@ -191,14 +221,21 @@ function renderRunCard(run) {
 
 export function renderReport(runs, generatedAt) {
   const sortedRuns = sortRuns(runs)
+  validateRunStatuses(sortedRuns)
+  const overloadRun = sortedRuns.find((run) => run.profile === 'overload')
   const summaryRows = sortedRuns.map((run) => [
     profileLabels[run.profile],
+    statusLabel(run),
+    formatValue(run.exit_status),
     formatLoad(run),
     formatValue(run.metrics.requests),
     formatValue(run.metrics.requestRate, {suffix: ' req/s'}),
     formatValue(run.metrics.errorRate, {percent: true}),
     formatValue(run.metrics.p99, {suffix: ' ms'})
   ])
+  const summaryLead = overloadRun?.status === 'failed'
+    ? 'Generated from baseline, staircase, sustained, and failed overload benchmark evidence. This executive summary reports the recorded values without declaring a winner or full-suite success.'
+    : 'Generated from the four required benchmark profiles. This executive summary reports the recorded values without declaring a winner or full-suite success.'
 
   return `<!doctype html>
 <html lang="en">
@@ -219,6 +256,11 @@ export function renderReport(runs, generatedAt) {
         --staircase: #8e44ad;
         --sustained: #1b9c5a;
         --overload: #d35400;
+        --warning-bg: #fff1e8;
+        --warning-border: #f1a674;
+        --warning-text: #8a3c00;
+        --success-bg: #e9f8f0;
+        --success-text: #1b6e42;
       }
       * { box-sizing: border-box; }
       body {
@@ -286,6 +328,28 @@ export function renderReport(runs, generatedAt) {
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         word-break: break-word;
       }
+      .card-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+      }
+      .status-pill {
+        margin: 0;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      .status-succeeded {
+        background: var(--success-bg);
+        color: var(--success-text);
+      }
+      .status-failed {
+        background: var(--warning-bg);
+        color: var(--warning-text);
+      }
       .metrics-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -308,6 +372,14 @@ export function renderReport(runs, generatedAt) {
         margin: 0;
         font-size: 1.1rem;
         font-weight: 700;
+      }
+      .warning {
+        border-color: var(--warning-border);
+        background: var(--warning-bg);
+        color: var(--warning-text);
+      }
+      .warning code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
       .caveats { padding-left: 20px; }
       svg {
@@ -336,10 +408,11 @@ export function renderReport(runs, generatedAt) {
       <section>
         <p class="eyebrow">Standalone benchmark report</p>
         <h1>FastAPI Zellit benchmark observations</h1>
-        <p class="lede">Generated at ${escapeHtml(generatedAt)} from four successful benchmark profiles. This executive summary reports the recorded values without declaring a winner.</p>
+        <p class="lede">Generated at ${escapeHtml(generatedAt)}. ${escapeHtml(summaryLead)}</p>
         <p class="lede">Each row below is a workload-specific benchmark observation rather than a normalized head-to-head ranking.</p>
-        ${renderTable(['Profile', 'Load profile', 'Requests', 'Request rate', 'Error rate', 'P99 latency'], summaryRows)}
+        ${renderTable(['Profile', 'Status', 'Exit status', 'Load profile', 'Requests', 'Request rate', 'Error rate', 'P99 latency'], summaryRows)}
       </section>
+      ${renderOverloadWarning(overloadRun)}
       ${renderLatencyChart(sortedRuns)}
       ${renderEnvironmentSection(sortedRuns, generatedAt)}
       ${renderObjectSection('Versions', sortedRuns, (run) => run.versions)}
@@ -356,6 +429,7 @@ export function renderReport(runs, generatedAt) {
           <li>This report reflects a single trial per required profile.</li>
           <li>Each profile is a workload-specific benchmark observation with intentionally different loads and durations.</li>
           <li>The overload profile is meant to push the service beyond the lighter baseline, staircase, and sustained loads.</li>
+          <li>If the overload profile fails its acceptance condition, its status and metrics are preserved as failure evidence without retry.</li>
           <li>This is not a FastAPI-versus-Django comparison.</li>
           <li>This report does not support production-capacity inference.</li>
         </ul>
@@ -369,7 +443,7 @@ export function renderReport(runs, generatedAt) {
 export async function generateReport(outputPath, runDirectories) {
   if (!outputPath) throw new Error('outputPath is required')
   if (!Array.isArray(runDirectories) || runDirectories.length === 0) throw new Error('At least one run directory is required')
-  const runs = await Promise.all(runDirectories.map((runDirectory) => loadRun(runDirectory)))
+  const runs = await Promise.all(runDirectories.map((runDirectory) => loadRun(runDirectory, {allowFailed: true})))
   const html = renderReport(runs, new Date().toISOString())
   const resolvedOutputPath = path.resolve(outputPath)
   await mkdir(path.dirname(resolvedOutputPath), {recursive: true})
