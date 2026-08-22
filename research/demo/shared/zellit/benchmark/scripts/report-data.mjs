@@ -1,0 +1,90 @@
+import {readFile} from 'node:fs/promises'
+import path from 'node:path'
+
+async function readJson(runDirectory, filename) {
+  const artifactPath = path.resolve(runDirectory, filename)
+  try {
+    return JSON.parse(await readFile(artifactPath, 'utf8'))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Cannot read ${artifactPath}: ${message}`)
+  }
+}
+
+function requiredObject(value, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`)
+  }
+  return value
+}
+
+function nullableNumber(value) {
+  if (value === null || value === undefined) return null
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function sumSuccessfulCodes(counters) {
+  let total = 0
+  for (const [name, value] of Object.entries(counters)) {
+    const match = /^http\.codes\.(2\d\d)$/.exec(name)
+    if (match && typeof value === 'number' && Number.isFinite(value)) total += value
+  }
+  return total
+}
+
+export async function loadRun(runDirectory) {
+  const artifactDirectory = path.resolve(runDirectory)
+  const config = requiredObject(await readJson(artifactDirectory, 'config.json'), 'config')
+  const raw = requiredObject(await readJson(artifactDirectory, 'raw.json'), 'raw')
+  const metadata = requiredObject(await readJson(artifactDirectory, 'metadata.json'), 'metadata')
+  const runtime = requiredObject(await readJson(artifactDirectory, 'runtime.json'), 'runtime')
+
+  const runId = path.basename(artifactDirectory)
+  if (metadata.run_id !== runId) throw new Error('metadata.run_id must match the run directory name')
+  if (metadata.status !== 'succeeded') throw new Error('metadata.status must be succeeded')
+
+  const phases = requiredObject(config.config, 'config.config').phases
+  if (!Array.isArray(phases)) throw new Error('config.config.phases must be an array')
+
+  const aggregate = requiredObject(raw.aggregate, 'raw.aggregate')
+  const counters = requiredObject(aggregate.counters, 'raw.aggregate.counters')
+  const rates = requiredObject(aggregate.rates, 'raw.aggregate.rates')
+  const summaries = requiredObject(aggregate.summaries, 'raw.aggregate.summaries')
+  const responseSummary = requiredObject(summaries['http.response_time'], 'raw.aggregate.summaries.http.response_time')
+
+  const requests = nullableNumber(counters['http.requests'])
+  const responses = nullableNumber(counters['http.responses'])
+  const failedVusers = nullableNumber(counters['vusers.failed'])
+  const requestRate = nullableNumber(rates['http.request_rate'])
+  const successfulResponses = sumSuccessfulCodes(counters)
+  const httpErrors = requests === null ? null : Math.max(0, requests - successfulResponses)
+  const errorRate = requests && requests > 0 && httpErrors !== null ? httpErrors / requests : null
+
+  return {
+    runId,
+    artifactDirectory,
+    profile: metadata.profile,
+    status: metadata.status,
+    startedAt: metadata.started_at,
+    completedAt: metadata.completed_at,
+    implementation: metadata.implementation,
+    gitRevision: metadata.git_revision,
+    dataset: requiredObject(metadata.dataset, 'metadata.dataset'),
+    requestCorpus: requiredObject(metadata.request_corpus, 'metadata.request_corpus'),
+    versions: requiredObject(metadata.versions, 'metadata.versions'),
+    runtime,
+    phases,
+    metrics: {
+      requests,
+      responses,
+      failedVusers,
+      httpErrors,
+      errorRate,
+      requestRate,
+      p50: nullableNumber(responseSummary.p50),
+      p95: nullableNumber(responseSummary.p95),
+      p99: nullableNumber(responseSummary.p99),
+      max: nullableNumber(responseSummary.max)
+    }
+  }
+}
