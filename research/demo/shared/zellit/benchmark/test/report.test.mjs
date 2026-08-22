@@ -1,17 +1,34 @@
 import assert from 'node:assert/strict'
-import {mkdtemp, mkdir, writeFile} from 'node:fs/promises'
+import {spawnSync} from 'node:child_process'
+import {mkdtemp, mkdir, readFile, writeFile} from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
+import {fileURLToPath} from 'node:url'
 
+import {renderReport} from '../scripts/generate-report.mjs'
 import {loadRun} from '../scripts/report-data.mjs'
+
+const benchmarkDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const generateReportScript = path.join(benchmarkDir, 'scripts/generate-report.mjs')
+const phasesByProfile = {
+  baseline: [{duration: 60, arrivalRate: 5}],
+  staircase: [
+    {duration: 20, arrivalRate: 5, name: 'warm-up'},
+    {duration: 45, arrivalRate: 10, name: '10 rps'},
+    {duration: 45, arrivalRate: 25, name: '25 rps'}
+  ],
+  sustained: [{duration: 300, arrivalRate: 50}],
+  overload: [{duration: 30, arrivalRate: 400}]
+}
 
 async function writeJson(directory, filename, value) {
   await writeFile(path.join(directory, filename), `${JSON.stringify(value, null, 2)}\n`)
 }
 
 async function createRunFixture({
-  runId = 'fastapi-zellit-baseline-20260822T120000Z',
+  profile = 'baseline',
+  runId = `fastapi-zellit-${profile}-20260822T120000Z`,
   directoryName = runId,
   status = 'succeeded',
   includeP99 = true,
@@ -25,7 +42,7 @@ async function createRunFixture({
 
   const config = {
     config: {
-      phases: [{duration: 60, arrivalRate: 5}]
+      phases: phasesByProfile[profile] || [{duration: 60, arrivalRate: 5}]
     }
   }
   const rawAggregate = {}
@@ -59,16 +76,35 @@ async function createRunFixture({
     started_at: '2026-08-22T12:00:00Z',
     completed_at: '2026-08-22T12:05:00Z',
     status,
-    profile: 'baseline',
+    profile,
     implementation: 'fastapi-zellit',
     git_revision: 'abc123',
-    dataset: {digest: 'digest'},
-    request_corpus: {sha256: 'sha'},
-    versions: {node: 'v22.23.2'}
+    dataset: {
+      schema_version: '1',
+      generator_version: '1',
+      seed: 20260813,
+      digest: 'digest'
+    },
+    request_corpus: {
+      sha256: 'sha',
+      rows: 500
+    },
+    effective_phases: config.config.phases,
+    versions: {
+      python: 'Python 3.12.12',
+      fastapi: '0.141.1',
+      node: 'v22.23.2'
+    }
   }
   const runtime = {
     runtime_label: 'uvicorn-1',
-    server: 'uvicorn'
+    server: 'uvicorn',
+    workers: 1,
+    concurrency_model: 'asyncio',
+    database_access: 'sqlalchemy-async',
+    database_driver: 'asyncpg',
+    pool_size: 20,
+    max_overflow: 0
   }
   mutate({config, raw, metadata, runtime})
 
@@ -92,9 +128,18 @@ test('report data loads and normalizes benchmark artifacts', async () => {
   assert.equal(run.artifactDirectory, runDirectory)
   assert.equal(run.profile, 'baseline')
   assert.equal(run.gitRevision, 'abc123')
-  assert.deepEqual(run.dataset, {digest: 'digest'})
-  assert.deepEqual(run.requestCorpus, {sha256: 'sha'})
-  assert.deepEqual(run.versions, {node: 'v22.23.2'})
+  assert.deepEqual(run.dataset, {
+    schema_version: '1',
+    generator_version: '1',
+    seed: 20260813,
+    digest: 'digest'
+  })
+  assert.deepEqual(run.requestCorpus, {sha256: 'sha', rows: 500})
+  assert.deepEqual(run.versions, {
+    python: 'Python 3.12.12',
+    fastapi: '0.141.1',
+    node: 'v22.23.2'
+  })
   assert.equal(run.runtime.runtime_label, 'uvicorn-1')
   assert.deepEqual(run.phases, [{duration: 60, arrivalRate: 5}])
   assert.equal(run.metrics.requests, 100)
@@ -176,6 +221,94 @@ test('report data rejects mismatched directory and run IDs', async () => {
   })
 
   await assert.rejects(loadRun(runDirectory), /metadata\.run_id must match the run directory name/)
+})
+
+test('report render creates standalone HTML for four profiles', async () => {
+  const runDirectories = await Promise.all([
+    createRunFixture({profile: 'sustained', includeP99: false}),
+    createRunFixture({profile: 'baseline', mutate: ({metadata}) => {
+      metadata.dataset.digest = 'digest <unsafe>'
+    }}),
+    createRunFixture({profile: 'overload'}),
+    createRunFixture({profile: 'staircase'})
+  ])
+  const runs = await Promise.all(runDirectories.map((runDirectory) => loadRun(runDirectory)))
+
+  const html = renderReport(runs, '2026-08-22T12:10:00Z')
+
+  assert.match(html, /<!doctype html>/i)
+  for (const profile of ['baseline', 'staircase', 'sustained', 'overload']) {
+    assert.match(html, new RegExp(`data-profile="${profile}"`))
+  }
+  assert.match(html, /single trial/i)
+  assert.match(html, /workload-specific benchmark observation/i)
+  assert.match(html, /not a FastAPI-versus-Django comparison/i)
+  assert.match(html, /Not available/)
+  assert.match(html, /&lt;unsafe&gt;/)
+  assert.doesNotMatch(html, /<(script|link)\b/i)
+  assert.doesNotMatch(html, /(?:src|href)=["']https?:/i)
+})
+
+test('report CLI writes HTML with required profiles and creates parent directories', async () => {
+  const runDirectories = await Promise.all([
+    createRunFixture({profile: 'baseline'}),
+    createRunFixture({profile: 'staircase'}),
+    createRunFixture({profile: 'sustained'}),
+    createRunFixture({profile: 'overload'})
+  ])
+  const outputRoot = await mkdtemp(path.join(os.tmpdir(), 'zellit-report-html-'))
+  const outputPath = path.join(outputRoot, 'nested', 'benchmark', 'report.html')
+
+  const result = spawnSync(process.execPath, [generateReportScript, outputPath, ...runDirectories], {
+    cwd: benchmarkDir,
+    encoding: 'utf8'
+  })
+
+  assert.equal(result.status, 0, result.stderr || result.stdout)
+  const html = await readFile(outputPath, 'utf8')
+  for (const runId of [
+    'fastapi-zellit-baseline-20260822T120000Z',
+    'fastapi-zellit-staircase-20260822T120000Z',
+    'fastapi-zellit-sustained-20260822T120000Z',
+    'fastapi-zellit-overload-20260822T120000Z'
+  ]) {
+    assert.match(html, new RegExp(escapeRegExp(runId)))
+  }
+})
+
+test('report CLI rejects duplicate profiles', async () => {
+  const runDirectories = await Promise.all([
+    createRunFixture({profile: 'baseline'}),
+    createRunFixture({profile: 'baseline', runId: 'fastapi-zellit-baseline-20260822T120500Z'}),
+    createRunFixture({profile: 'sustained'}),
+    createRunFixture({profile: 'overload'})
+  ])
+  const outputPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'zellit-report-html-')), 'report.html')
+
+  const result = spawnSync(process.execPath, [generateReportScript, outputPath, ...runDirectories], {
+    cwd: benchmarkDir,
+    encoding: 'utf8'
+  })
+
+  assert.notEqual(result.status, 0)
+  assert.match(result.stderr || result.stdout, /Duplicate profile: baseline/)
+})
+
+test('report CLI rejects a missing required profile', async () => {
+  const runDirectories = await Promise.all([
+    createRunFixture({profile: 'baseline'}),
+    createRunFixture({profile: 'staircase'}),
+    createRunFixture({profile: 'sustained'})
+  ])
+  const outputPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'zellit-report-html-')), 'report.html')
+
+  const result = spawnSync(process.execPath, [generateReportScript, outputPath, ...runDirectories], {
+    cwd: benchmarkDir,
+    encoding: 'utf8'
+  })
+
+  assert.notEqual(result.status, 0)
+  assert.match(result.stderr || result.stdout, /Missing required profiles: overload/)
 })
 
 function escapeRegExp(value) {
