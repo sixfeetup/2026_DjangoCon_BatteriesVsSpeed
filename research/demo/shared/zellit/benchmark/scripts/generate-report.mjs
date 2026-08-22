@@ -132,17 +132,27 @@ function renderLatencyChart(runs) {
   `
 }
 
+function phasesForRun(run) {
+  if (Array.isArray(run.effectivePhases)) return run.effectivePhases
+  if (Array.isArray(run.phases)) return run.phases
+  return []
+}
+
 function formatLoad(run) {
-  return run.phases
+  const phases = phasesForRun(run)
+  if (phases.length === 0) return 'Not available'
+  return phases
     .map((phase) => {
       const name = phase.name ? `${phase.name}: ` : ''
-      return `${name}${phase.duration}s @ ${phase.arrivalRate} rps`
+      const duration = formatValue(phase.duration, {suffix: 's'})
+      const arrivalRate = formatValue(phase.arrivalRate, {suffix: ' rps'})
+      return `${name}${duration} @ ${arrivalRate}`
     })
     .join('; ')
 }
 
 function renderPhaseTable(run) {
-  const rows = run.phases.map((phase, index) => [
+  const rows = phasesForRun(run).map((phase, index) => [
     `${index + 1}`,
     phase.name || 'Not available',
     formatValue(phase.duration, {suffix: ' s'}),
@@ -173,7 +183,7 @@ function renderRunCard(run) {
         ${renderMetric('P99 latency', run.metrics.p99, {suffix: ' ms'})}
         ${renderMetric('Max latency', run.metrics.max, {suffix: ' ms'})}
       </dl>
-      <h4>Configured phases</h4>
+      <h4>Effective phases</h4>
       ${renderPhaseTable(run)}
     </article>
   `

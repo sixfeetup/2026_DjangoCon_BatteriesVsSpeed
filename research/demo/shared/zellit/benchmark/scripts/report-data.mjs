@@ -52,8 +52,9 @@ export async function loadRun(runDirectory) {
   if (metadata.run_id !== runId) throw new Error('metadata.run_id must match the run directory name')
   if (metadata.status !== 'succeeded') throw new Error('metadata.status must be succeeded')
 
-  const phases = requiredObject(config.config, 'config.config').phases
-  if (!Array.isArray(phases)) throw new Error('config.config.phases must be an array')
+  const configuredPhases = requiredObject(config.config, 'config.config').phases
+  if (!Array.isArray(configuredPhases)) throw new Error('config.config.phases must be an array')
+  const effectivePhases = Array.isArray(metadata.effective_phases) ? metadata.effective_phases : configuredPhases
 
   const aggregate = requiredObject(raw.aggregate, 'raw.aggregate')
   const counters = optionalObject(aggregate.counters)
@@ -82,7 +83,9 @@ export async function loadRun(runDirectory) {
     requestCorpus: requiredObject(metadata.request_corpus, 'metadata.request_corpus'),
     versions: requiredObject(metadata.versions, 'metadata.versions'),
     runtime,
-    phases,
+    configuredPhases,
+    effectivePhases,
+    phases: effectivePhases,
     metrics: {
       requests,
       responses,

@@ -159,6 +159,16 @@ test('report data loads and normalizes benchmark artifacts', async () => {
   })
 })
 
+test('report data prefers metadata effective phases over config phases', async () => {
+  const runDirectory = await createRunFixture({mutate: ({config, metadata}) => {
+    config.config.phases = [{duration: 999, arrivalRate: 999, name: 'configured'}]
+    metadata.effective_phases = [{duration: 15, name: 'effective'}]
+  }})
+  const run = await loadRun(runDirectory)
+
+  assert.deepEqual(run.phases, [{duration: 15, name: 'effective'}])
+})
+
 test('report data normalizes missing p99 as null', async () => {
   const runDirectory = await createRunFixture({includeP99: false})
   const run = await loadRun(runDirectory)
@@ -226,8 +236,13 @@ test('report data rejects mismatched directory and run IDs', async () => {
 test('report render creates standalone HTML for four profiles', async () => {
   const runDirectories = await Promise.all([
     createRunFixture({profile: 'sustained', includeP99: false}),
-    createRunFixture({profile: 'baseline', mutate: ({metadata}) => {
+    createRunFixture({profile: 'baseline', mutate: ({config, metadata}) => {
       metadata.dataset.digest = 'digest <unsafe>'
+      config.config.phases = [{duration: 999, arrivalRate: 999, name: 'configured'}]
+      metadata.effective_phases = [
+        {duration: 15, name: 'effective only'},
+        {arrivalRate: 7}
+      ]
     }}),
     createRunFixture({profile: 'overload'}),
     createRunFixture({profile: 'staircase'})
@@ -245,6 +260,11 @@ test('report render creates standalone HTML for four profiles', async () => {
   assert.match(html, /not a FastAPI-versus-Django comparison/i)
   assert.match(html, /Not available/)
   assert.match(html, /&lt;unsafe&gt;/)
+  assert.match(html, /effective only/)
+  assert.match(html, /15 s/)
+  assert.match(html, /7 req\/s/)
+  assert.doesNotMatch(html, /configured/)
+  assert.doesNotMatch(html, /undefined/)
   assert.doesNotMatch(html, /<(script|link)\b/i)
   assert.doesNotMatch(html, /(?:src|href)=["']https?:/i)
 })
