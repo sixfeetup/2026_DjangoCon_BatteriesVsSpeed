@@ -26,6 +26,14 @@ async function writeJson(directory, filename, value) {
   await writeFile(path.join(directory, filename), `${JSON.stringify(value, null, 2)}\n`)
 }
 
+function profileArticle(html, profile) {
+  const article = html.match(
+    new RegExp(`<article\\b[^>]*data-profile="${profile}"[^>]*>[\\s\\S]*?</article>`, 'i')
+  )?.[0]
+  assert.ok(article, `expected an article for the ${profile} profile`)
+  return article
+}
+
 async function createRunFixture({
   profile = 'baseline',
   implementation = 'fastapi-zellit',
@@ -622,9 +630,11 @@ test('report CLI accepts a failed sustained profile and preserves successful pro
   const html = await readFile(outputPath, 'utf8')
   assert.match(html, /Failed profiles: Sustained\./)
   assert.match(html, /Sustained[\s\S]*?<td>4<\/td>/i)
-  assert.match(html, /data-profile="baseline"[\s\S]*?status-succeeded/i)
-  assert.match(html, /data-profile="staircase"[\s\S]*?status-succeeded/i)
-  assert.match(html, /data-profile="overload"[\s\S]*?status-succeeded/i)
+  for (const profile of ['baseline', 'staircase', 'overload']) {
+    const article = profileArticle(html, profile)
+    assert.match(article, /status-succeeded/i)
+    assert.doesNotMatch(article, /status-failed/i)
+  }
 })
 
 test('successful profiles render metadata notes without suite-success or winner claims', async () => {

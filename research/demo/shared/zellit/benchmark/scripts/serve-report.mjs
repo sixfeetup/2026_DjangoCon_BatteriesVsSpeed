@@ -275,12 +275,12 @@ function parseReportTarget(requestTarget) {
   return name
 }
 
-function renderReportsIndex(reports) {
+export function renderReportsIndex(reports) {
   const contents = reports.length === 0
     ? '<p>No Zellit reports are available yet.</p>'
     : `<ul>\n${reports.map((report) => {
         const href = `/reports/${encodeURIComponent(report.name)}`
-        return `      <li><a href="${escapeHtml(href)}">${escapeHtml(report.label)}</a></li>`
+        return `      <li><a href="${escapeHtml(href)}">${escapeHtml(report.label)}</a> <code>${escapeHtml(report.name)}</code></li>`
       }).join('\n')}\n    </ul>`
   return `<!doctype html>
 <html lang="en">

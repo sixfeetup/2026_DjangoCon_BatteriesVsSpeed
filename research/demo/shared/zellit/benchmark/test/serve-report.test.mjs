@@ -17,6 +17,7 @@ import {
   listen,
   listReports,
   main,
+  renderReportsIndex,
   resolveServerConfig
 } from '../scripts/serve-report.mjs'
 
@@ -145,11 +146,17 @@ test('createReportServer renders a dynamic standalone index for GET and HEAD', a
   assert.match(indexHtml, /FastAPI — 20260822T155305Z/)
   assert.match(
     indexHtml,
-    new RegExp(`href="/reports/${escapeRegExp(encodeURIComponent(djangoName))}"`)
+    new RegExp(
+      `<a href="/reports/${escapeRegExp(encodeURIComponent(djangoName))}">` +
+      `Django — gevent-1 — 20260822T170000Z</a> <code>${escapeRegExp(escapeHtml(djangoName))}</code>`
+    )
   )
   assert.match(
     indexHtml,
-    new RegExp(`href="/reports/${escapeRegExp(encodeURIComponent(fastapiName))}"`)
+    new RegExp(
+      `<a href="/reports/${escapeRegExp(encodeURIComponent(fastapiName))}">` +
+      `FastAPI — 20260822T155305Z</a> <code>${escapeRegExp(escapeHtml(fastapiName))}</code>`
+    )
   )
   assert.doesNotMatch(indexHtml, /private-notes|not an index entry/)
 
@@ -168,6 +175,18 @@ test('createReportServer renders a dynamic standalone index for GET and HEAD', a
   const refreshedHtml = await (await fetch(`${baseUrl}/`)).text()
   assert.match(refreshedHtml, /Django — gevent-2 — 20260822T180000Z/)
   assert.match(refreshedHtml, new RegExp(`/reports/${escapeRegExp(encodeURIComponent(newName))}`))
+})
+
+test('report index escapes labels and visibly rendered exact filenames', () => {
+  const name = 'fastapi-zellit-a<&"b.html'
+  const html = renderReportsIndex([{name, label: 'FastAPI — <unsafe & label>'}])
+
+  assert.match(html, /FastAPI — &lt;unsafe &amp; label&gt;/)
+  assert.match(
+    html,
+    new RegExp(`<code>${escapeRegExp(escapeHtml(name))}</code>`)
+  )
+  assert.doesNotMatch(html, /<unsafe|<code>fastapi-zellit-a<&"b\.html<\/code>/)
 })
 
 test('createReportServer renders a useful empty index', async (t) => {
@@ -189,7 +208,8 @@ test('createReportServer serves exact report bytes for GET and headers only for 
   const reportBytes = Buffer.from([0x3c, 0x68, 0x31, 0x3e, 0xc3, 0xa9, 0x3c, 0x2f, 0x68, 0x31, 0x3e, 0x0a])
   await writeFile(path.join(reportsDirectory, reportName), reportBytes)
   const {baseUrl} = await startServer(t, createReportServer(reportsDirectory))
-  const reportUrl = `${baseUrl}/reports/${encodeURIComponent(reportName)}`
+  const manuallyEncodedReportName = `%66${reportName.slice(1)}`
+  const reportUrl = `${baseUrl}/reports/${manuallyEncodedReportName}`
 
   const getResponse = await fetch(reportUrl)
   const actualBytes = Buffer.from(await getResponse.arrayBuffer())
@@ -241,6 +261,14 @@ test('createReportServer isolates unrecognized, missing, directory, and symlink 
   }
   assert.equal(errors.length, 3)
   assert.ok(errors.every((message) => message.includes(reportsDirectory)))
+
+  const recoveredContents = '<html>regular file restored after directory rejection</html>\n'
+  await rm(path.join(reportsDirectory, directoryName), {recursive: true})
+  await writeFile(path.join(reportsDirectory, directoryName), recoveredContents, 'utf8')
+  const recoveredResponse = await fetch(`${baseUrl}/reports/${directoryName}`)
+  assert.equal(recoveredResponse.status, 200)
+  assert.equal(await recoveredResponse.text(), recoveredContents)
+  assert.equal(errors.length, 3)
 })
 
 test('createReportServer rejects escape targets, queries, fragments, and unsupported methods', async (t) => {
@@ -1084,6 +1112,15 @@ function createFakeProcess(stderr = createOutput()) {
     processLike.exits.push(code)
   }
   return processLike
+}
+
+function escapeHtml(value) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
 }
 
 function escapeRegExp(value) {
