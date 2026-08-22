@@ -35,10 +35,25 @@ function sumSuccessfulCodes(counters) {
     const match = /^http\.codes\.(2\d\d)$/.exec(name)
     if (match) {
       hasSuccessfulCode = true
-      if (typeof value === 'number' && Number.isFinite(value)) total += value
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(`raw.aggregate.counters.${name} must be a finite number`)
+      }
+      total += value
     }
   }
   return {total, hasSuccessfulCode}
+}
+
+function validateExitStatus(metadata) {
+  const exitStatus = metadata.exit_status
+  if (!Number.isInteger(exitStatus)) throw new Error('metadata.exit_status must be a finite integer')
+  if (metadata.status === 'succeeded' && exitStatus !== 0) {
+    throw new Error('succeeded metadata.status requires metadata.exit_status 0')
+  }
+  if (metadata.status === 'failed' && exitStatus === 0) {
+    throw new Error('failed metadata.status requires a nonzero metadata.exit_status')
+  }
+  return exitStatus
 }
 
 export async function loadRun(runDirectory, {allowFailed = false} = {}) {
@@ -55,6 +70,7 @@ export async function loadRun(runDirectory, {allowFailed = false} = {}) {
   } else if (metadata.status !== 'succeeded') {
     throw new Error('metadata.status must be succeeded')
   }
+  const exitStatus = validateExitStatus(metadata)
 
   const configuredPhases = requiredObject(config.config, 'config.config').phases
   if (!Array.isArray(configuredPhases)) throw new Error('config.config.phases must be an array')
@@ -79,7 +95,7 @@ export async function loadRun(runDirectory, {allowFailed = false} = {}) {
     artifactDirectory,
     profile: metadata.profile,
     status: metadata.status,
-    exit_status: nullableNumber(metadata.exit_status),
+    exit_status: exitStatus,
     startedAt: metadata.started_at,
     completedAt: metadata.completed_at,
     implementation: metadata.implementation,
@@ -87,6 +103,7 @@ export async function loadRun(runDirectory, {allowFailed = false} = {}) {
     dataset: requiredObject(metadata.dataset, 'metadata.dataset'),
     requestCorpus: requiredObject(metadata.request_corpus, 'metadata.request_corpus'),
     versions: requiredObject(metadata.versions, 'metadata.versions'),
+    images: requiredObject(metadata.images, 'metadata.images'),
     runtime,
     configuredPhases,
     effectivePhases,
@@ -94,6 +111,7 @@ export async function loadRun(runDirectory, {allowFailed = false} = {}) {
     metrics: {
       requests,
       responses,
+      latencySamples: nullableNumber(responseSummary?.count),
       failedVusers,
       httpErrors,
       errorRate,

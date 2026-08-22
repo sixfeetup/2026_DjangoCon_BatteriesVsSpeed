@@ -59,6 +59,36 @@ function renderOverloadWarning(overloadRun) {
   `
 }
 
+function renderImageIdentityWarning(runs) {
+  const identityGroups = new Map()
+  for (const run of runs) {
+    const identity = run.images.fastapi
+    const key = identity === null || identity === undefined ? 'Not available' : String(identity)
+    const profiles = identityGroups.get(key) || []
+    profiles.push(profileLabels[run.profile])
+    identityGroups.set(key, profiles)
+  }
+  if (identityGroups.size < 2) return ''
+
+  const identities = [...identityGroups.entries()]
+    .map(([identity, profiles]) => `${profiles.join(' and ')} recorded <code>${escapeHtml(identity)}</code>`)
+    .join('; ')
+  const gitIsStable = new Set(runs.map((run) => run.gitRevision)).size === 1
+  const versionsAreStable = new Set(runs.map((run) => JSON.stringify(run.versions))).size === 1
+  const identityContext = gitIsStable && versionsAreStable
+    ? 'The recorded Git revision and dependency versions are stable across these artifacts, but that does not establish image equivalence.'
+    : 'Recorded Git revisions or dependency versions also vary, so they do not establish image equivalence.'
+
+  return `
+    <section class="warning methodology-warning" aria-live="polite">
+      <p class="eyebrow">Methodology caveat</p>
+      <h2>Application image identity changed mid-suite</h2>
+      <p>The FastAPI application image identity changed across the profiles: ${identities}.</p>
+      <p>${identityContext} The root cause is not established by the preserved artifacts. Cross-profile comparisons are therefore qualified; no equivalence between these application images is implied.</p>
+    </section>
+  `
+}
+
 function formatValue(value, {suffix = '', digits = 2, percent = false} = {}) {
   if (value === null || value === undefined) return 'Not available'
   if (percent) return `${(value * 100).toFixed(digits)}%`
@@ -124,7 +154,7 @@ function renderEnvironmentSection(runs, generatedAt) {
 
 function renderLatencyChart(runs) {
   const chartWidth = 680
-  const left = 184
+  const left = 104
   const right = 120
   const barMax = chartWidth - left - right
   const rowHeight = 44
@@ -132,15 +162,17 @@ function renderLatencyChart(runs) {
   const maxP99 = Math.max(0, ...runs.map((run) => run.metrics.p99 ?? 0)) || 1
   const rows = runs.map((run, index) => {
     const y = 32 + index * rowHeight
-    const label = `${profileLabels[run.profile]} (${run.runId})`
-    const width = run.metrics.p99 === null ? 0 : Math.round((run.metrics.p99 / maxP99) * barMax)
+    const p99 = run.metrics.p99
+    const width = p99 === null || p99 <= 0
+      ? 0
+      : Math.max(2, Math.round((Math.log1p(p99) / Math.log1p(maxP99)) * barMax))
     const textX = left + Math.max(width + 12, 12)
     return `
       <g transform="translate(0 ${y})">
-        <text x="8" y="18" class="svg-label">${escapeHtml(label)}</text>
+        <text x="8" y="18" class="svg-label">${escapeHtml(profileLabels[run.profile])}</text>
         <rect x="${left}" y="2" width="${barMax}" height="18" rx="9" ry="9" class="svg-track"></rect>
-        <rect x="${left}" y="2" width="${width}" height="18" rx="9" ry="9" class="svg-bar svg-bar-${escapeHtml(run.profile)}"></rect>
-        <text x="${textX}" y="18" class="svg-value">${escapeHtml(formatValue(run.metrics.p99, {suffix: ' ms'}))}</text>
+        <rect data-chart-profile="${escapeHtml(run.profile)}" x="${left}" y="2" width="${width}" height="18" rx="9" ry="9" class="svg-bar svg-bar-${escapeHtml(run.profile)}"></rect>
+        <text x="${textX}" y="18" class="svg-value">${escapeHtml(formatValue(p99, {suffix: ' ms'}))}</text>
       </g>
     `
   }).join('')
@@ -148,10 +180,10 @@ function renderLatencyChart(runs) {
   return `
     <section>
       <h2>Latency comparison</h2>
-      <p>P99 latency bars are scaled against the largest available p99 across the four required profiles.</p>
+      <p>P99 latency bars use a logarithmic scale against the largest available p99 so every nonzero value remains visible.</p>
       <svg viewBox="0 0 ${chartWidth} ${height}" role="img" aria-labelledby="latency-title latency-desc">
         <title id="latency-title">P99 latency comparison across benchmark profiles</title>
-        <desc id="latency-desc">Horizontal bars compare p99 latency for the baseline, staircase, sustained, and overload profiles.</desc>
+        <desc id="latency-desc">Logarithmically scaled horizontal bars compare p99 latency for the baseline, staircase, sustained, and overload profiles.</desc>
         ${rows}
       </svg>
     </section>
@@ -204,6 +236,8 @@ function renderRunCard(run) {
       <p>${escapeHtml(formatLoad(run))}</p>
       <dl class="metrics-grid">
         ${renderMetric('Requests', run.metrics.requests)}
+        ${renderMetric('Responses', run.metrics.responses)}
+        ${renderMetric('Latency samples', run.metrics.latencySamples)}
         ${renderMetric('Request rate', run.metrics.requestRate, {suffix: ' req/s'})}
         ${renderMetric('Failed users', run.metrics.failedVusers)}
         ${renderMetric('Error count', run.metrics.httpErrors)}
@@ -229,6 +263,8 @@ export function renderReport(runs, generatedAt) {
     formatValue(run.exit_status),
     formatLoad(run),
     formatValue(run.metrics.requests),
+    formatValue(run.metrics.responses),
+    formatValue(run.metrics.latencySamples),
     formatValue(run.metrics.requestRate, {suffix: ' req/s'}),
     formatValue(run.metrics.errorRate, {percent: true}),
     formatValue(run.metrics.p99, {suffix: ' ms'})
@@ -410,12 +446,14 @@ export function renderReport(runs, generatedAt) {
         <h1>FastAPI Zellit benchmark observations</h1>
         <p class="lede">Generated at ${escapeHtml(generatedAt)}. ${escapeHtml(summaryLead)}</p>
         <p class="lede">Each row below is a workload-specific benchmark observation rather than a normalized head-to-head ranking.</p>
-        ${renderTable(['Profile', 'Status', 'Exit status', 'Load profile', 'Requests', 'Request rate', 'Error rate', 'P99 latency'], summaryRows)}
+        ${renderTable(['Profile', 'Status', 'Exit status', 'Load profile', 'Requests', 'Responses', 'Latency samples', 'Request rate', 'Error rate', 'P99 latency'], summaryRows)}
       </section>
       ${renderOverloadWarning(overloadRun)}
+      ${renderImageIdentityWarning(sortedRuns)}
       ${renderLatencyChart(sortedRuns)}
       ${renderEnvironmentSection(sortedRuns, generatedAt)}
       ${renderObjectSection('Versions', sortedRuns, (run) => run.versions)}
+      ${renderObjectSection('Container images', sortedRuns, (run) => run.images)}
       ${renderObjectSection('Runtime', sortedRuns, (run) => run.runtime)}
       ${renderObjectSection('Dataset', sortedRuns, (run) => run.dataset)}
       ${renderObjectSection('Request corpus', sortedRuns, (run) => run.requestCorpus)}
@@ -430,6 +468,8 @@ export function renderReport(runs, generatedAt) {
           <li>Each profile is a workload-specific benchmark observation with intentionally different loads and durations.</li>
           <li>The overload profile is meant to push the service beyond the lighter baseline, staircase, and sustained loads.</li>
           <li>If the overload profile fails its acceptance condition, its status and metrics are preserved as failure evidence without retry.</li>
+          <li>Socket timeouts are excluded from Artillery's response-latency distribution; latency percentiles cover only requests represented by the displayed latency sample count, not every attempted request.</li>
+          <li>Application image identities are reported per profile. Any identity change qualifies cross-profile comparisons and must not be treated as equivalent inputs.</li>
           <li>This is not a FastAPI-versus-Django comparison.</li>
           <li>This report does not support production-capacity inference.</li>
         </ul>
@@ -437,7 +477,7 @@ export function renderReport(runs, generatedAt) {
     </main>
   </body>
 </html>
-`
+`.replace(/[ \t]+$/gm, '')
 }
 
 export async function generateReport(outputPath, runDirectories) {
@@ -456,6 +496,7 @@ async function main([outputPath, ...runDirectories]) {
     throw new Error('Usage: node scripts/generate-report.mjs <output.html> <run-directory>...')
   }
   await generateReport(outputPath, runDirectories)
+  console.log(path.resolve(outputPath))
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === scriptPath) {

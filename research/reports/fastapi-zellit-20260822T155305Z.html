@@ -169,94 +169,108 @@
       <section>
         <p class="eyebrow">Standalone benchmark report</p>
         <h1>FastAPI Zellit benchmark observations</h1>
-        <p class="lede">Generated at 2026-08-22T16:18:26.022Z. Generated from baseline, staircase, sustained, and failed overload benchmark evidence. This executive summary reports the recorded values without declaring a winner or full-suite success.</p>
+        <p class="lede">Generated at 2026-08-22T16:40:19.575Z. Generated from baseline, staircase, sustained, and failed overload benchmark evidence. This executive summary reports the recorded values without declaring a winner or full-suite success.</p>
         <p class="lede">Each row below is a workload-specific benchmark observation rather than a normalized head-to-head ranking.</p>
-        <div class="table-wrap"><table><thead><tr><th scope="col">Profile</th><th scope="col">Status</th><th scope="col">Exit status</th><th scope="col">Load profile</th><th scope="col">Requests</th><th scope="col">Request rate</th><th scope="col">Error rate</th><th scope="col">P99 latency</th></tr></thead><tbody><tr><td>Baseline</td><td>SUCCEEDED</td><td>0</td><td>60s @ 5 rps</td><td>300</td><td>5 req/s</td><td>0.00%</td><td>7 ms</td></tr><tr><td>Staircase</td><td>SUCCEEDED</td><td>0</td><td>warm-up: 20s @ 5 rps; 10 rps: 45s @ 10 rps; 25 rps: 45s @ 25 rps; 50 rps: 45s @ 50 rps; 100 rps: 45s @ 100 rps; 200 rps: 45s @ 200 rps</td><td>17425</td><td>93 req/s</td><td>0.00%</td><td>63.40 ms</td></tr><tr><td>Sustained</td><td>SUCCEEDED</td><td>0</td><td>300s @ 50 rps</td><td>15000</td><td>50 req/s</td><td>0.00%</td><td>8.90 ms</td></tr><tr><td>Overload</td><td>FAILED</td><td>1</td><td>30s @ 400 rps</td><td>12000</td><td>310 req/s</td><td>88.09%</td><td>7865.60 ms</td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th scope="col">Profile</th><th scope="col">Status</th><th scope="col">Exit status</th><th scope="col">Load profile</th><th scope="col">Requests</th><th scope="col">Responses</th><th scope="col">Latency samples</th><th scope="col">Request rate</th><th scope="col">Error rate</th><th scope="col">P99 latency</th></tr></thead><tbody><tr><td>Baseline</td><td>SUCCEEDED</td><td>0</td><td>60s @ 5 rps</td><td>300</td><td>300</td><td>300</td><td>5 req/s</td><td>0.00%</td><td>7 ms</td></tr><tr><td>Staircase</td><td>SUCCEEDED</td><td>0</td><td>warm-up: 20s @ 5 rps; 10 rps: 45s @ 10 rps; 25 rps: 45s @ 25 rps; 50 rps: 45s @ 50 rps; 100 rps: 45s @ 100 rps; 200 rps: 45s @ 200 rps</td><td>17425</td><td>17425</td><td>17425</td><td>93 req/s</td><td>0.00%</td><td>63.40 ms</td></tr><tr><td>Sustained</td><td>SUCCEEDED</td><td>0</td><td>300s @ 50 rps</td><td>15000</td><td>15000</td><td>15000</td><td>50 req/s</td><td>0.00%</td><td>8.90 ms</td></tr><tr><td>Overload</td><td>FAILED</td><td>1</td><td>30s @ 400 rps</td><td>12000</td><td>1429</td><td>1429</td><td>310 req/s</td><td>88.09%</td><td>7865.60 ms</td></tr></tbody></table></div>
       </section>
-      
+
     <section class="warning" aria-live="polite">
       <p class="eyebrow">FAILED overload evidence preserved</p>
       <h2>Overload acceptance condition failed</h2>
       <p>The overload profile failed its acceptance condition (<code>vusers.failed == 0</code>) and exited with status 1. The metrics are preserved as failure evidence and no retry occurred.</p>
     </section>
-  
-      
+
+
+    <section class="warning methodology-warning" aria-live="polite">
+      <p class="eyebrow">Methodology caveat</p>
+      <h2>Application image identity changed mid-suite</h2>
+      <p>The FastAPI application image identity changed across the profiles: Baseline and Staircase recorded <code>94d26d20a9ba14cb4b8facd25f97d7d58e76a93bd2cda030e9b5b6a385732e9a</code>; Sustained and Overload recorded <code>bb963a13c848658809bdf9ada4b7816c50ffd71a32e9d3f4836bb6dfccf3208a</code>.</p>
+      <p>The recorded Git revision and dependency versions are stable across these artifacts, but that does not establish image equivalence. The root cause is not established by the preserved artifacts. Cross-profile comparisons are therefore qualified; no equivalence between these application images is implied.</p>
+    </section>
+
+
     <section>
       <h2>Latency comparison</h2>
-      <p>P99 latency bars are scaled against the largest available p99 across the four required profiles.</p>
+      <p>P99 latency bars use a logarithmic scale against the largest available p99 so every nonzero value remains visible.</p>
       <svg viewBox="0 0 680 224" role="img" aria-labelledby="latency-title latency-desc">
         <title id="latency-title">P99 latency comparison across benchmark profiles</title>
-        <desc id="latency-desc">Horizontal bars compare p99 latency for the baseline, staircase, sustained, and overload profiles.</desc>
-        
+        <desc id="latency-desc">Logarithmically scaled horizontal bars compare p99 latency for the baseline, staircase, sustained, and overload profiles.</desc>
+
       <g transform="translate(0 32)">
-        <text x="8" y="18" class="svg-label">Baseline (fastapi-zellit-20260822T155305Z-baseline)</text>
-        <rect x="184" y="2" width="376" height="18" rx="9" ry="9" class="svg-track"></rect>
-        <rect x="184" y="2" width="0" height="18" rx="9" ry="9" class="svg-bar svg-bar-baseline"></rect>
-        <text x="196" y="18" class="svg-value">7 ms</text>
+        <text x="8" y="18" class="svg-label">Baseline</text>
+        <rect x="104" y="2" width="456" height="18" rx="9" ry="9" class="svg-track"></rect>
+        <rect data-chart-profile="baseline" x="104" y="2" width="106" height="18" rx="9" ry="9" class="svg-bar svg-bar-baseline"></rect>
+        <text x="222" y="18" class="svg-value">7 ms</text>
       </g>
-    
+
       <g transform="translate(0 76)">
-        <text x="8" y="18" class="svg-label">Staircase (fastapi-zellit-20260822T155305Z-staircase)</text>
-        <rect x="184" y="2" width="376" height="18" rx="9" ry="9" class="svg-track"></rect>
-        <rect x="184" y="2" width="3" height="18" rx="9" ry="9" class="svg-bar svg-bar-staircase"></rect>
-        <text x="199" y="18" class="svg-value">63.40 ms</text>
+        <text x="8" y="18" class="svg-label">Staircase</text>
+        <rect x="104" y="2" width="456" height="18" rx="9" ry="9" class="svg-track"></rect>
+        <rect data-chart-profile="staircase" x="104" y="2" width="212" height="18" rx="9" ry="9" class="svg-bar svg-bar-staircase"></rect>
+        <text x="328" y="18" class="svg-value">63.40 ms</text>
       </g>
-    
+
       <g transform="translate(0 120)">
-        <text x="8" y="18" class="svg-label">Sustained (fastapi-zellit-20260822T155305Z-sustained)</text>
-        <rect x="184" y="2" width="376" height="18" rx="9" ry="9" class="svg-track"></rect>
-        <rect x="184" y="2" width="0" height="18" rx="9" ry="9" class="svg-bar svg-bar-sustained"></rect>
-        <text x="196" y="18" class="svg-value">8.90 ms</text>
+        <text x="8" y="18" class="svg-label">Sustained</text>
+        <rect x="104" y="2" width="456" height="18" rx="9" ry="9" class="svg-track"></rect>
+        <rect data-chart-profile="sustained" x="104" y="2" width="117" height="18" rx="9" ry="9" class="svg-bar svg-bar-sustained"></rect>
+        <text x="233" y="18" class="svg-value">8.90 ms</text>
       </g>
-    
+
       <g transform="translate(0 164)">
-        <text x="8" y="18" class="svg-label">Overload (fastapi-zellit-20260822T155305Z-overload)</text>
-        <rect x="184" y="2" width="376" height="18" rx="9" ry="9" class="svg-track"></rect>
-        <rect x="184" y="2" width="376" height="18" rx="9" ry="9" class="svg-bar svg-bar-overload"></rect>
+        <text x="8" y="18" class="svg-label">Overload</text>
+        <rect x="104" y="2" width="456" height="18" rx="9" ry="9" class="svg-track"></rect>
+        <rect data-chart-profile="overload" x="104" y="2" width="456" height="18" rx="9" ry="9" class="svg-bar svg-bar-overload"></rect>
         <text x="572" y="18" class="svg-value">7865.60 ms</text>
       </g>
-    
+
       </svg>
     </section>
-  
-      
+
+
     <section>
       <h2>Shared environment</h2>
-      <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>Generated at</td><td>2026-08-22T16:18:26.022Z</td><td>2026-08-22T16:18:26.022Z</td><td>2026-08-22T16:18:26.022Z</td><td>2026-08-22T16:18:26.022Z</td></tr><tr><td>Implementation</td><td>fastapi-zellit</td><td>fastapi-zellit</td><td>fastapi-zellit</td><td>fastapi-zellit</td></tr><tr><td>Artifact directory</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-baseline</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-staircase</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-sustained</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-overload</td></tr><tr><td>Started at</td><td>2026-08-22T15:53:50.759Z</td><td>2026-08-22T15:55:23.026Z</td><td>2026-08-22T15:59:57.649Z</td><td>2026-08-22T16:05:39.820Z</td></tr><tr><td>Completed at</td><td>2026-08-22T15:54:54.951Z</td><td>2026-08-22T15:59:35.410Z</td><td>2026-08-22T16:05:06.101Z</td><td>2026-08-22T16:06:30.127Z</td></tr><tr><td>Status</td><td>SUCCEEDED</td><td>SUCCEEDED</td><td>SUCCEEDED</td><td>FAILED</td></tr><tr><td>Exit status</td><td>0</td><td>0</td><td>0</td><td>1</td></tr></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>Generated at</td><td>2026-08-22T16:40:19.575Z</td><td>2026-08-22T16:40:19.575Z</td><td>2026-08-22T16:40:19.575Z</td><td>2026-08-22T16:40:19.575Z</td></tr><tr><td>Implementation</td><td>fastapi-zellit</td><td>fastapi-zellit</td><td>fastapi-zellit</td><td>fastapi-zellit</td></tr><tr><td>Artifact directory</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-baseline</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-staircase</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-sustained</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-overload</td></tr><tr><td>Started at</td><td>2026-08-22T15:53:50.759Z</td><td>2026-08-22T15:55:23.026Z</td><td>2026-08-22T15:59:57.649Z</td><td>2026-08-22T16:05:39.820Z</td></tr><tr><td>Completed at</td><td>2026-08-22T15:54:54.951Z</td><td>2026-08-22T15:59:35.410Z</td><td>2026-08-22T16:05:06.101Z</td><td>2026-08-22T16:06:30.127Z</td></tr><tr><td>Status</td><td>SUCCEEDED</td><td>SUCCEEDED</td><td>SUCCEEDED</td><td>FAILED</td></tr><tr><td>Exit status</td><td>0</td><td>0</td><td>0</td><td>1</td></tr></tbody></table></div>
     </section>
-  
-      
+
+
     <section>
       <h2>Versions</h2>
       <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>artillery</td><td>2.0.33</td><td>2.0.33</td><td>2.0.33</td><td>2.0.33</td></tr><tr><td>asyncpg</td><td>0.31.0</td><td>0.31.0</td><td>0.31.0</td><td>0.31.0</td></tr><tr><td>fastapi</td><td>0.141.1</td><td>0.141.1</td><td>0.141.1</td><td>0.141.1</td></tr><tr><td>node</td><td>v22.23.2</td><td>v22.23.2</td><td>v22.23.2</td><td>v22.23.2</td></tr><tr><td>pnpm</td><td>11.21.0</td><td>11.21.0</td><td>11.21.0</td><td>11.21.0</td></tr><tr><td>postgresql</td><td>postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)</td><td>postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)</td><td>postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)</td><td>postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)</td></tr><tr><td>python</td><td>Python 3.12.12</td><td>Python 3.12.12</td><td>Python 3.12.12</td><td>Python 3.12.12</td></tr><tr><td>sqlalchemy</td><td>2.0.52</td><td>2.0.52</td><td>2.0.52</td><td>2.0.52</td></tr><tr><td>uvicorn</td><td>0.52.4</td><td>0.52.4</td><td>0.52.4</td><td>0.52.4</td></tr></tbody></table></div>
     </section>
-  
-      
+
+
+    <section>
+      <h2>Container images</h2>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>artillery</td><td>sha256:64e55fe7a31cdb4775ebc849942c7471644ca360af7da9bc209da6c8107c49c1</td><td>sha256:64e55fe7a31cdb4775ebc849942c7471644ca360af7da9bc209da6c8107c49c1</td><td>sha256:64e55fe7a31cdb4775ebc849942c7471644ca360af7da9bc209da6c8107c49c1</td><td>sha256:64e55fe7a31cdb4775ebc849942c7471644ca360af7da9bc209da6c8107c49c1</td></tr><tr><td>data</td><td>04034d2d3a1c8018170b9077572a88d01e199ad27879ec3250784ce052e0ef99</td><td>04034d2d3a1c8018170b9077572a88d01e199ad27879ec3250784ce052e0ef99</td><td>04034d2d3a1c8018170b9077572a88d01e199ad27879ec3250784ce052e0ef99</td><td>04034d2d3a1c8018170b9077572a88d01e199ad27879ec3250784ce052e0ef99</td></tr><tr><td>fastapi</td><td>94d26d20a9ba14cb4b8facd25f97d7d58e76a93bd2cda030e9b5b6a385732e9a</td><td>94d26d20a9ba14cb4b8facd25f97d7d58e76a93bd2cda030e9b5b6a385732e9a</td><td>bb963a13c848658809bdf9ada4b7816c50ffd71a32e9d3f4836bb6dfccf3208a</td><td>bb963a13c848658809bdf9ada4b7816c50ffd71a32e9d3f4836bb6dfccf3208a</td></tr><tr><td>postgresql</td><td>ae1a6a12d1a7a082e4140f9e567a9765229b88bf686b974781233f03076edf89</td><td>ae1a6a12d1a7a082e4140f9e567a9765229b88bf686b974781233f03076edf89</td><td>ae1a6a12d1a7a082e4140f9e567a9765229b88bf686b974781233f03076edf89</td><td>ae1a6a12d1a7a082e4140f9e567a9765229b88bf686b974781233f03076edf89</td></tr></tbody></table></div>
+    </section>
+
+
     <section>
       <h2>Runtime</h2>
       <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>concurrency_model</td><td>asyncio</td><td>asyncio</td><td>asyncio</td><td>asyncio</td></tr><tr><td>database_access</td><td>sqlalchemy-async</td><td>sqlalchemy-async</td><td>sqlalchemy-async</td><td>sqlalchemy-async</td></tr><tr><td>database_driver</td><td>asyncpg</td><td>asyncpg</td><td>asyncpg</td><td>asyncpg</td></tr><tr><td>max_overflow</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>pool_size</td><td>20</td><td>20</td><td>20</td><td>20</td></tr><tr><td>runtime_label</td><td>uvicorn-1</td><td>uvicorn-1</td><td>uvicorn-1</td><td>uvicorn-1</td></tr><tr><td>server</td><td>uvicorn</td><td>uvicorn</td><td>uvicorn</td><td>uvicorn</td></tr><tr><td>workers</td><td>1</td><td>1</td><td>1</td><td>1</td></tr></tbody></table></div>
     </section>
-  
-      
+
+
     <section>
       <h2>Dataset</h2>
       <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>digest</td><td>d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862</td><td>d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862</td><td>d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862</td><td>d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862</td></tr><tr><td>generator_version</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>schema_version</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>seed</td><td>20260813</td><td>20260813</td><td>20260813</td><td>20260813</td></tr></tbody></table></div>
     </section>
-  
-      
+
+
     <section>
       <h2>Request corpus</h2>
       <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>rows</td><td>500</td><td>500</td><td>500</td><td>500</td></tr><tr><td>sha256</td><td>b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1</td><td>b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1</td><td>b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1</td><td>b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1</td></tr></tbody></table></div>
     </section>
-  
-      
+
+
     <section>
       <h2>Git</h2>
       <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>gitRevision</td><td>f8388a1d59041e228196c8c38cc61afb5103c9a3</td><td>f8388a1d59041e228196c8c38cc61afb5103c9a3</td><td>f8388a1d59041e228196c8c38cc61afb5103c9a3</td><td>f8388a1d59041e228196c8c38cc61afb5103c9a3</td></tr><tr><td>runId</td><td>fastapi-zellit-20260822T155305Z-baseline</td><td>fastapi-zellit-20260822T155305Z-staircase</td><td>fastapi-zellit-20260822T155305Z-sustained</td><td>fastapi-zellit-20260822T155305Z-overload</td></tr></tbody></table></div>
     </section>
-  
+
       <section class="cards">
-        
+
     <article class="card" data-profile="baseline">
       <div class="card-header">
         <div>
@@ -272,6 +286,8 @@
       <p>60s @ 5 rps</p>
       <dl class="metrics-grid">
         <div class="metric"><dt>Requests</dt><dd>300</dd></div>
+        <div class="metric"><dt>Responses</dt><dd>300</dd></div>
+        <div class="metric"><dt>Latency samples</dt><dd>300</dd></div>
         <div class="metric"><dt>Request rate</dt><dd>5 req/s</dd></div>
         <div class="metric"><dt>Failed users</dt><dd>0</dd></div>
         <div class="metric"><dt>Error count</dt><dd>0</dd></div>
@@ -284,7 +300,7 @@
       <h4>Effective phases</h4>
       <div class="table-wrap"><table><thead><tr><th scope="col">Phase</th><th scope="col">Name</th><th scope="col">Duration</th><th scope="col">Arrival rate</th></tr></thead><tbody><tr><td>1</td><td>Not available</td><td>60 s</td><td>5 req/s</td></tr></tbody></table></div>
     </article>
-  
+
     <article class="card" data-profile="staircase">
       <div class="card-header">
         <div>
@@ -300,6 +316,8 @@
       <p>warm-up: 20s @ 5 rps; 10 rps: 45s @ 10 rps; 25 rps: 45s @ 25 rps; 50 rps: 45s @ 50 rps; 100 rps: 45s @ 100 rps; 200 rps: 45s @ 200 rps</p>
       <dl class="metrics-grid">
         <div class="metric"><dt>Requests</dt><dd>17425</dd></div>
+        <div class="metric"><dt>Responses</dt><dd>17425</dd></div>
+        <div class="metric"><dt>Latency samples</dt><dd>17425</dd></div>
         <div class="metric"><dt>Request rate</dt><dd>93 req/s</dd></div>
         <div class="metric"><dt>Failed users</dt><dd>0</dd></div>
         <div class="metric"><dt>Error count</dt><dd>0</dd></div>
@@ -312,7 +330,7 @@
       <h4>Effective phases</h4>
       <div class="table-wrap"><table><thead><tr><th scope="col">Phase</th><th scope="col">Name</th><th scope="col">Duration</th><th scope="col">Arrival rate</th></tr></thead><tbody><tr><td>1</td><td>warm-up</td><td>20 s</td><td>5 req/s</td></tr><tr><td>2</td><td>10 rps</td><td>45 s</td><td>10 req/s</td></tr><tr><td>3</td><td>25 rps</td><td>45 s</td><td>25 req/s</td></tr><tr><td>4</td><td>50 rps</td><td>45 s</td><td>50 req/s</td></tr><tr><td>5</td><td>100 rps</td><td>45 s</td><td>100 req/s</td></tr><tr><td>6</td><td>200 rps</td><td>45 s</td><td>200 req/s</td></tr></tbody></table></div>
     </article>
-  
+
     <article class="card" data-profile="sustained">
       <div class="card-header">
         <div>
@@ -328,6 +346,8 @@
       <p>300s @ 50 rps</p>
       <dl class="metrics-grid">
         <div class="metric"><dt>Requests</dt><dd>15000</dd></div>
+        <div class="metric"><dt>Responses</dt><dd>15000</dd></div>
+        <div class="metric"><dt>Latency samples</dt><dd>15000</dd></div>
         <div class="metric"><dt>Request rate</dt><dd>50 req/s</dd></div>
         <div class="metric"><dt>Failed users</dt><dd>0</dd></div>
         <div class="metric"><dt>Error count</dt><dd>0</dd></div>
@@ -340,7 +360,7 @@
       <h4>Effective phases</h4>
       <div class="table-wrap"><table><thead><tr><th scope="col">Phase</th><th scope="col">Name</th><th scope="col">Duration</th><th scope="col">Arrival rate</th></tr></thead><tbody><tr><td>1</td><td>Not available</td><td>300 s</td><td>50 req/s</td></tr></tbody></table></div>
     </article>
-  
+
     <article class="card" data-profile="overload">
       <div class="card-header">
         <div>
@@ -356,6 +376,8 @@
       <p>30s @ 400 rps</p>
       <dl class="metrics-grid">
         <div class="metric"><dt>Requests</dt><dd>12000</dd></div>
+        <div class="metric"><dt>Responses</dt><dd>1429</dd></div>
+        <div class="metric"><dt>Latency samples</dt><dd>1429</dd></div>
         <div class="metric"><dt>Request rate</dt><dd>310 req/s</dd></div>
         <div class="metric"><dt>Failed users</dt><dd>10571</dd></div>
         <div class="metric"><dt>Error count</dt><dd>10571</dd></div>
@@ -368,7 +390,7 @@
       <h4>Effective phases</h4>
       <div class="table-wrap"><table><thead><tr><th scope="col">Phase</th><th scope="col">Name</th><th scope="col">Duration</th><th scope="col">Arrival rate</th></tr></thead><tbody><tr><td>1</td><td>Not available</td><td>30 s</td><td>400 req/s</td></tr></tbody></table></div>
     </article>
-  
+
       </section>
       <section>
         <h2>Caveats</h2>
@@ -377,6 +399,8 @@
           <li>Each profile is a workload-specific benchmark observation with intentionally different loads and durations.</li>
           <li>The overload profile is meant to push the service beyond the lighter baseline, staircase, and sustained loads.</li>
           <li>If the overload profile fails its acceptance condition, its status and metrics are preserved as failure evidence without retry.</li>
+          <li>Socket timeouts are excluded from Artillery's response-latency distribution; latency percentiles cover only requests represented by the displayed latency sample count, not every attempted request.</li>
+          <li>Application image identities are reported per profile. Any identity change qualifies cross-profile comparisons and must not be treated as equivalent inputs.</li>
           <li>This is not a FastAPI-versus-Django comparison.</li>
           <li>This report does not support production-capacity inference.</li>
         </ul>
