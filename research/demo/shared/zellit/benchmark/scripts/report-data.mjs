@@ -99,6 +99,7 @@ export async function loadRun(runDirectory, {allowFailed = false} = {}) {
     startedAt: metadata.started_at,
     completedAt: metadata.completed_at,
     implementation: metadata.implementation,
+    notes: Object.hasOwn(metadata, 'notes') ? String(metadata.notes) : '',
     gitRevision: metadata.git_revision,
     dataset: requiredObject(metadata.dataset, 'metadata.dataset'),
     requestCorpus: requiredObject(metadata.request_corpus, 'metadata.request_corpus'),

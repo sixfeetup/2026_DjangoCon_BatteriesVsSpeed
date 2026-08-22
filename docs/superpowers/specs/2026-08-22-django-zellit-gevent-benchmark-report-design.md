@@ -147,3 +147,13 @@ Use TDD and Node built-ins only.
 ## Evidence Status
 
 Presentation-worthy measured observations are recorded as `benchmark-observation` claims with artifact/report evidence IDs and status `needs-review`. No output is presentation-ready until speaker review.
+
+## Approved General Failure-Aware Continuation
+
+The preserved baseline and failed staircase artifacts under stamp `20260822T190615Z` remain immutable and are not rerun. After cleanup and stack recreation, sustained and opted-in overload are each attempted exactly once under that same stamp, in that order, using the approved stack-recreation note. A complete artifact may finalize as either `succeeded` with exit status 0 or `failed` with a nonzero exit status; a failed sustained or overload run is preserved without retry, and overload cleanup still runs.
+
+The shared report loader normalizes metadata `notes` to a string, using an empty string only when the field is absent. General report validation accepts either finalized status for every required profile while preserving the existing status/exit-status consistency checks. The report renders per-profile notes, displaying `Not available` for empty notes.
+
+When any profile failed, the executive summary names every failed profile and does not imply that the full suite succeeded. A prominent general failure-evidence section lists each failed profile's exit status, failed-user count, error count, and the `vusers.failed == 0` acceptance condition. This replaces overload-only warning behavior while preserving compatibility with the existing FastAPI report, whose overload profile is its only failed profile.
+
+The final Django report is generated from all four preserved artifact sets and remains subject to complete source-to-report, standalone asset, two-report LAN index, traversal rejection, launcher cleanup, full-test, Git, and Compose-cleanliness validation. Claim recording remains controller-owned.

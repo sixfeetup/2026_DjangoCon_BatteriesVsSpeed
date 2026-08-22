@@ -86,21 +86,34 @@ function statusLabel(run) {
 
 function validateRunStatuses(runs) {
   for (const run of runs) {
-    if (run.profile === 'overload') {
-      if (!['succeeded', 'failed'].includes(run.status)) throw new Error('overload profile must have status succeeded or failed')
-      continue
+    if (!['succeeded', 'failed'].includes(run.status)) {
+      throw new Error(`${run.profile} profile must have status succeeded or failed`)
     }
-    if (run.status !== 'succeeded') throw new Error(`${run.profile} profile must have status succeeded`)
   }
 }
 
-function renderOverloadWarning(overloadRun) {
-  if (!overloadRun || overloadRun.status !== 'failed') return ''
+function formatProfileList(runs) {
+  const labels = runs.map((run) => profileLabels[run.profile])
+  if (labels.length < 2) return labels[0] || ''
+  if (labels.length === 2) return labels.join(' and ')
+  return `${labels.slice(0, -1).join(', ')}, and ${labels.at(-1)}`
+}
+
+function renderFailureEvidence(failedRuns) {
+  if (failedRuns.length === 0) return ''
+  const rows = failedRuns.map((run) => [
+    profileLabels[run.profile],
+    formatValue(run.exit_status),
+    formatValue(run.metrics.failedVusers),
+    formatValue(run.metrics.httpErrors),
+    'vusers.failed == 0'
+  ])
   return `
-    <section class="warning" aria-live="polite">
-      <p class="eyebrow">FAILED overload evidence preserved</p>
-      <h2>Overload acceptance condition failed</h2>
-      <p>The overload profile failed its acceptance condition (<code>vusers.failed == 0</code>) and exited with status ${escapeHtml(formatValue(overloadRun.exit_status))}. The metrics are preserved as failure evidence and no retry occurred.</p>
+    <section class="warning failure-evidence" aria-live="polite">
+      <p class="eyebrow">FAILED profile evidence preserved</p>
+      <h2>${escapeHtml(formatProfileList(failedRuns))} acceptance evidence failed</h2>
+      <p>Every failed profile is listed below with its finalized exit status and failure metrics. The acceptance condition was <code>vusers.failed == 0</code>. These artifacts are preserved as failure evidence and no retry occurred.</p>
+      ${renderTable(['Profile', 'Exit status', 'Failed users', 'Errors', 'Acceptance condition'], rows)}
     </section>
   `
 }
@@ -188,7 +201,8 @@ function renderEnvironmentSection(runs, generatedAt) {
     ['Started at', ...runs.map((run) => run.startedAt)],
     ['Completed at', ...runs.map((run) => run.completedAt)],
     ['Status', ...runs.map((run) => statusLabel(run))],
-    ['Exit status', ...runs.map((run) => formatValue(run.exit_status))]
+    ['Exit status', ...runs.map((run) => formatValue(run.exit_status))],
+    ['Metadata notes', ...runs.map((run) => run.notes === '' ? 'Not available' : run.notes)]
   ]
   return `
     <section>
@@ -303,7 +317,7 @@ export function renderReport(runs, generatedAt) {
   const sortedRuns = sortRuns(runs)
   validateRunStatuses(sortedRuns)
   const reportIdentity = deriveReportIdentity(sortedRuns)
-  const overloadRun = sortedRuns.find((run) => run.profile === 'overload')
+  const failedRuns = sortedRuns.filter((run) => run.status === 'failed')
   const summaryRows = sortedRuns.map((run) => [
     profileLabels[run.profile],
     statusLabel(run),
@@ -316,9 +330,9 @@ export function renderReport(runs, generatedAt) {
     formatValue(run.metrics.errorRate, {percent: true}),
     formatValue(run.metrics.p99, {suffix: ' ms'})
   ])
-  const summaryLead = overloadRun?.status === 'failed'
-    ? 'Generated from baseline, staircase, sustained, and failed overload benchmark evidence. This executive summary reports the recorded values without declaring a winner or full-suite success.'
-    : 'Generated from the four required benchmark profiles. This executive summary reports the recorded values without declaring a winner or full-suite success.'
+  const summaryLead = failedRuns.length > 0
+    ? `Generated from all four required benchmark artifacts. Failed profiles: ${formatProfileList(failedRuns)}. This executive summary reports the finalized profile states and recorded workload-specific values.`
+    : 'Generated from all four required benchmark artifacts. This executive summary reports the finalized profile states and recorded workload-specific values.'
 
   return `<!doctype html>
 <html lang="en">
@@ -495,7 +509,7 @@ export function renderReport(runs, generatedAt) {
         <p class="lede">Each row below is a workload-specific benchmark observation rather than a normalized head-to-head ranking.</p>
         ${renderTable(['Profile', 'Status', 'Exit status', 'Load profile', 'Requests', 'Responses', 'Latency samples', 'Request rate', 'Error rate', 'P99 latency'], summaryRows)}
       </section>
-      ${renderOverloadWarning(overloadRun)}
+      ${renderFailureEvidence(failedRuns)}
       ${renderImageIdentityWarning(sortedRuns, reportIdentity)}
       ${renderLatencyChart(sortedRuns)}
       ${renderEnvironmentSection(sortedRuns, generatedAt)}
@@ -514,7 +528,7 @@ export function renderReport(runs, generatedAt) {
           <li>This report reflects a single trial per required profile.</li>
           <li>Each profile is a workload-specific benchmark observation with intentionally different loads and durations.</li>
           <li>The overload profile is meant to push the service beyond the lighter baseline, staircase, and sustained loads.</li>
-          <li>If the overload profile fails its acceptance condition, its status and metrics are preserved as failure evidence without retry.</li>
+          <li>If any profile fails its <code>vusers.failed == 0</code> acceptance condition, its status, exit status, failed-user count, and error count are preserved as failure evidence without retry.</li>
           <li>Socket timeouts are excluded from Artillery's response-latency distribution; latency percentiles cover only requests represented by the displayed latency sample count, not every attempted request.</li>
           <li>Application image identities are reported per profile. Any identity change qualifies cross-profile comparisons and must not be treated as equivalent inputs.</li>
           <li>This standalone report does not itself establish a FastAPI-versus-Django comparison.</li>

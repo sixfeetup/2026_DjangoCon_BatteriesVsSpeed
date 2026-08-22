@@ -274,3 +274,18 @@ Raw result directories stay ignored. The commit contains only the generated Djan
 - [ ] **Step 8: Record benchmark claims**
 
 For presentation-worthy observations, use category `benchmark-observation`, status `needs-review`, complete workload/single-trial/image/timeout caveats, and evidence IDs containing the Django run IDs plus report path. Do not create percentage comparisons or presentation-ready wording.
+
+## Approved General Failure-Aware Continuation
+
+This amendment supersedes Task 3's mandatory-success and stop-on-non-overload-failure rules for the preserved stamp `20260822T190615Z` only.
+
+- [ ] Preserve the existing baseline and failed staircase artifacts unchanged; do not rerun either profile.
+- [ ] Use strict TDD to normalize metadata `notes`, permit `succeeded/0` or `failed/nonzero` for every finalized profile, render notes with `Not available` for empty values, and replace the overload-only warning with a prominent all-failed-profile evidence section.
+- [ ] Ensure the executive summary names every failed profile without winner or full-suite-success language. Cover failed staircase plus failed overload, failed sustained acceptance, successful profiles, notes, and existing FastAPI overload compatibility in tests.
+- [ ] Commit the implementation, tests, and this design/plan amendment before executing another benchmark, with commit message `feat: report failed Zellit profile evidence`.
+- [ ] Recreate the clean Django stack as part of the unchanged runner and run sustained exactly once as `django-zellit-gevent-1-20260822T190615Z-sustained`, with `CLEANUP=0` and `BENCHMARK_NOTES="Stack recreated after the staircase acceptance failure and protocol pause; this profile did not share the original live Compose stack."`.
+- [ ] Regardless of sustained's final status, run overload exactly once as `django-zellit-gevent-1-20260822T190615Z-overload`, with the same note, `ENABLE_OVERLOAD=1`, and `CLEANUP=1`. Preserve complete nonzero results without retry.
+- [ ] Validate all four artifact sets and generate `research/reports/django-zellit-gevent-1-20260822T190615Z.html`; cross-check statuses, exits, metrics, latency sample counts, phases, versions, runtime, dataset/corpus/Git identities, image identities, notes, and caveats, and require no external assets.
+- [ ] Verify the LAN index lists and serves both FastAPI and Django reports, traversal fails, launcher-only termination cleans processes/listeners, full tests pass, tracked Git is clean, and Django Compose is clean.
+- [ ] Commit only the generated report with `docs: report Django Zellit gevent benchmarks`.
+- [ ] Record candidate observations and evidence IDs for controller review, but do not invoke or claim ownership of the Step 8 claim tool.

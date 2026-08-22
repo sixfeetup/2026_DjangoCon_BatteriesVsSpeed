@@ -147,6 +147,7 @@ test('report data loads and normalizes benchmark artifacts', async () => {
   assert.equal(run.startedAt, '2026-08-22T12:00:00Z')
   assert.equal(run.completedAt, '2026-08-22T12:05:00Z')
   assert.equal(run.implementation, 'fastapi-zellit')
+  assert.equal(run.notes, '')
   assert.equal(run.gitRevision, 'abc123')
   assert.deepEqual(run.dataset, {
     schema_version: '1',
@@ -194,6 +195,18 @@ test('report data prefers metadata effective phases over config phases', async (
   const run = await loadRun(runDirectory)
 
   assert.deepEqual(run.phases, [{duration: 15, name: 'effective'}])
+})
+
+test('report data normalizes present metadata notes as a string', async () => {
+  const stringNotesDirectory = await createRunFixture({mutate: ({metadata}) => {
+    metadata.notes = 'Stack recreated after a protocol pause.'
+  }})
+  const numericNotesDirectory = await createRunFixture({runId: 'fastapi-zellit-baseline-20260822T120500Z', mutate: ({metadata}) => {
+    metadata.notes = 42
+  }})
+
+  assert.equal((await loadRun(stringNotesDirectory)).notes, 'Stack recreated after a protocol pause.')
+  assert.equal((await loadRun(numericNotesDirectory)).notes, '42')
 })
 
 test('report data normalizes missing p99 as null', async () => {
@@ -383,7 +396,7 @@ test('Django report renders dynamic identity and preserves methodology caveats',
   assert.match(html, /Application image identities are reported per profile/i)
   assert.match(html, /does not itself establish a FastAPI-versus-Django comparison/i)
   assert.match(html, /does not support production-capacity inference/i)
-  assert.match(html, /without declaring a winner or full-suite success/i)
+  assert.doesNotMatch(html, /winner|full-suite success|successful benchmark profiles/i)
 })
 
 test('Django report names Django when application image identity changes', async () => {
@@ -538,12 +551,20 @@ test('report CLI writes HTML with required profiles and creates parent directori
   }
 })
 
-test('report CLI accepts failed overload evidence and renders failure warning', async () => {
+test('report CLI lists failed staircase and overload evidence with acceptance metrics', async () => {
   const runDirectories = await Promise.all([
     createRunFixture({profile: 'baseline'}),
-    createRunFixture({profile: 'staircase'}),
+    createRunFixture({profile: 'staircase', status: 'failed', exitStatus: 3, mutate: ({raw, metadata}) => {
+      raw.aggregate.counters['http.codes.200'] = 89
+      raw.aggregate.counters['vusers.failed'] = 9
+      metadata.notes = 'Staircase failure notes <preserved>.'
+    }}),
     createRunFixture({profile: 'sustained'}),
-    createRunFixture({profile: 'overload', status: 'failed'})
+    createRunFixture({profile: 'overload', status: 'failed', exitStatus: 7, mutate: ({raw, metadata}) => {
+      raw.aggregate.counters['http.codes.200'] = 79
+      raw.aggregate.counters['vusers.failed'] = 20
+      metadata.notes = 'Overload failure notes.'
+    }})
   ])
   const outputPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'zellit-report-html-')), 'report.html')
 
@@ -554,11 +575,77 @@ test('report CLI accepts failed overload evidence and renders failure warning', 
 
   assert.equal(result.status, 0, result.stderr || result.stdout)
   const html = await readFile(outputPath, 'utf8')
-  assert.match(html, /FAILED/)
-  assert.match(html, /failed its acceptance condition/i)
-  assert.match(html, /metrics are preserved as failure evidence/i)
-  assert.match(html, /Exit status/)
-  assert.doesNotMatch(html, /four successful benchmark profiles/i)
+  const failureEvidence = html.match(/<section class="warning failure-evidence"[\s\S]*?<\/section>/i)?.[0] || ''
+  assert.match(failureEvidence, /FAILED profile evidence preserved/i)
+  assert.match(failureEvidence, /Staircase[\s\S]*?<td>3<\/td>[\s\S]*?<td>9<\/td>[\s\S]*?<td>11<\/td>/i)
+  assert.match(failureEvidence, /Overload[\s\S]*?<td>7<\/td>[\s\S]*?<td>20<\/td>[\s\S]*?<td>21<\/td>/i)
+  assert.match(failureEvidence, /vusers\.failed == 0/)
+  assert.match(html, /Failed profiles: Staircase and Overload\./)
+  assert.match(html, /Staircase failure notes &lt;preserved&gt;\./)
+  assert.match(html, /Overload failure notes\./)
+  assert.doesNotMatch(html, /Overload acceptance condition failed/i)
+  assert.doesNotMatch(html, /winner|full-suite success|successful benchmark profiles/i)
+})
+
+test('FastAPI report keeps its lone failed overload prominently labeled', async () => {
+  const runDirectories = await Promise.all([
+    createRunFixture({profile: 'baseline'}),
+    createRunFixture({profile: 'staircase'}),
+    createRunFixture({profile: 'sustained'}),
+    createRunFixture({profile: 'overload', status: 'failed'})
+  ])
+  const runs = await Promise.all(runDirectories.map((runDirectory) => loadRun(runDirectory, {allowFailed: true})))
+
+  const html = renderReport(runs, '2026-08-22T12:10:00Z')
+  const failureEvidence = html.match(/<section class="warning failure-evidence"[\s\S]*?<\/section>/i)?.[0] || ''
+
+  assert.match(html, /Failed profiles: Overload\./)
+  assert.match(failureEvidence, /Overload[\s\S]*?<td>1<\/td>[\s\S]*?<td>2<\/td>[\s\S]*?<td>3<\/td>/i)
+  assert.doesNotMatch(failureEvidence, /<td>(?:Baseline|Staircase|Sustained)<\/td>/i)
+})
+
+test('report CLI accepts a failed sustained profile and preserves successful profiles', async () => {
+  const runDirectories = await Promise.all([
+    createRunFixture({profile: 'baseline'}),
+    createRunFixture({profile: 'staircase'}),
+    createRunFixture({profile: 'sustained', status: 'failed', exitStatus: 4}),
+    createRunFixture({profile: 'overload'})
+  ])
+  const outputPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'zellit-report-html-')), 'report.html')
+
+  const result = spawnSync(process.execPath, [generateReportScript, outputPath, ...runDirectories], {
+    cwd: benchmarkDir,
+    encoding: 'utf8'
+  })
+
+  assert.equal(result.status, 0, result.stderr || result.stdout)
+  const html = await readFile(outputPath, 'utf8')
+  assert.match(html, /Failed profiles: Sustained\./)
+  assert.match(html, /Sustained[\s\S]*?<td>4<\/td>/i)
+  assert.match(html, /data-profile="baseline"[\s\S]*?status-succeeded/i)
+  assert.match(html, /data-profile="staircase"[\s\S]*?status-succeeded/i)
+  assert.match(html, /data-profile="overload"[\s\S]*?status-succeeded/i)
+})
+
+test('successful profiles render metadata notes without suite-success or winner claims', async () => {
+  const runDirectories = await Promise.all([
+    createRunFixture({profile: 'baseline'}),
+    createRunFixture({profile: 'staircase', mutate: ({metadata}) => {
+      metadata.notes = 'Shared original stack.'
+    }}),
+    createRunFixture({profile: 'sustained'}),
+    createRunFixture({profile: 'overload'})
+  ])
+  const runs = await Promise.all(runDirectories.map((runDirectory) => loadRun(runDirectory)))
+
+  const html = renderReport(runs, '2026-08-22T12:10:00Z')
+  const executiveSummary = html.match(/<section>[\s\S]*?<\/section>/i)?.[0] || ''
+
+  assert.doesNotMatch(html, /failure-evidence/)
+  assert.match(html, /Metadata notes/)
+  assert.match(html, /Shared original stack\./)
+  assert.match(html, /Not available/)
+  assert.doesNotMatch(executiveSummary, /winner|full-suite success|successful (?:suite|benchmark profiles)/i)
 })
 
 test('report CLI rejects status-inconsistent exit statuses', async () => {
@@ -618,26 +705,6 @@ test('report CLI rejects a missing required profile', async () => {
 
   assert.notEqual(result.status, 0)
   assert.match(result.stderr || result.stdout, /Missing required profiles: overload/)
-})
-
-test('report CLI rejects failed non-overload profiles', async () => {
-  for (const profile of ['baseline', 'staircase', 'sustained']) {
-    const runDirectories = await Promise.all([
-      createRunFixture({profile: 'baseline', status: profile === 'baseline' ? 'failed' : 'succeeded'}),
-      createRunFixture({profile: 'staircase', status: profile === 'staircase' ? 'failed' : 'succeeded'}),
-      createRunFixture({profile: 'sustained', status: profile === 'sustained' ? 'failed' : 'succeeded'}),
-      createRunFixture({profile: 'overload', status: 'failed'})
-    ])
-    const outputPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'zellit-report-html-')), `${profile}.html`)
-
-    const result = spawnSync(process.execPath, [generateReportScript, outputPath, ...runDirectories], {
-      cwd: benchmarkDir,
-      encoding: 'utf8'
-    })
-
-    assert.notEqual(result.status, 0)
-    assert.match(result.stderr || result.stdout, new RegExp(`${profile} profile must have status succeeded`))
-  }
 })
 
 function escapeRegExp(value) {
