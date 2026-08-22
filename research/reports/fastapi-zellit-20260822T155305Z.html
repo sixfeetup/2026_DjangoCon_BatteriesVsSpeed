@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FastAPI Zellit benchmark report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --surface: #ffffff;
+        --text: #142033;
+        --muted: #5b677a;
+        --border: #d8dfeb;
+        --accent: #2f6feb;
+        --baseline: #2f6feb;
+        --staircase: #8e44ad;
+        --sustained: #1b9c5a;
+        --overload: #d35400;
+        --warning-bg: #fff1e8;
+        --warning-border: #f1a674;
+        --warning-text: #8a3c00;
+        --success-bg: #e9f8f0;
+        --success-text: #1b6e42;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 16px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+      h1, h2, h3, h4, p { margin-top: 0; }
+      section, article {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(20, 32, 51, 0.06);
+      }
+      .lede, .caveats li, .artifact-path, .eyebrow { color: var(--muted); }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+      }
+      .table-wrap { overflow-x: auto; }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 640px;
+      }
+      th, td {
+        border-top: 1px solid var(--border);
+        padding: 10px 12px;
+        vertical-align: top;
+        text-align: left;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+        border-top: none;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 20px;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      .card { margin: 0; }
+      .card-header {
+        display: flex;
+        gap: 16px;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .artifact-path {
+        margin: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        word-break: break-word;
+      }
+      .card-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+      }
+      .status-pill {
+        margin: 0;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      .status-succeeded {
+        background: var(--success-bg);
+        color: var(--success-text);
+      }
+      .status-failed {
+        background: var(--warning-bg);
+        color: var(--warning-text);
+      }
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin: 16px 0 20px;
+      }
+      .metric {
+        margin: 0;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fbfcff;
+      }
+      .metric dt {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+      }
+      .metric dd {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+      .warning {
+        border-color: var(--warning-border);
+        background: var(--warning-bg);
+        color: var(--warning-text);
+      }
+      .warning code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      .caveats { padding-left: 20px; }
+      svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .svg-track { fill: #e8edf7; }
+      .svg-label, .svg-value {
+        font: 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        fill: var(--text);
+      }
+      .svg-bar-baseline { fill: var(--baseline); }
+      .svg-bar-staircase { fill: var(--staircase); }
+      .svg-bar-sustained { fill: var(--sustained); }
+      .svg-bar-overload { fill: var(--overload); }
+      @media (max-width: 720px) {
+        main { padding: 20px 14px 32px; }
+        section, article { padding: 16px; }
+        .card-header { flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <p class="eyebrow">Standalone benchmark report</p>
+        <h1>FastAPI Zellit benchmark observations</h1>
+        <p class="lede">Generated at 2026-08-22T16:18:26.022Z. Generated from baseline, staircase, sustained, and failed overload benchmark evidence. This executive summary reports the recorded values without declaring a winner or full-suite success.</p>
+        <p class="lede">Each row below is a workload-specific benchmark observation rather than a normalized head-to-head ranking.</p>
+        <div class="table-wrap"><table><thead><tr><th scope="col">Profile</th><th scope="col">Status</th><th scope="col">Exit status</th><th scope="col">Load profile</th><th scope="col">Requests</th><th scope="col">Request rate</th><th scope="col">Error rate</th><th scope="col">P99 latency</th></tr></thead><tbody><tr><td>Baseline</td><td>SUCCEEDED</td><td>0</td><td>60s @ 5 rps</td><td>300</td><td>5 req/s</td><td>0.00%</td><td>7 ms</td></tr><tr><td>Staircase</td><td>SUCCEEDED</td><td>0</td><td>warm-up: 20s @ 5 rps; 10 rps: 45s @ 10 rps; 25 rps: 45s @ 25 rps; 50 rps: 45s @ 50 rps; 100 rps: 45s @ 100 rps; 200 rps: 45s @ 200 rps</td><td>17425</td><td>93 req/s</td><td>0.00%</td><td>63.40 ms</td></tr><tr><td>Sustained</td><td>SUCCEEDED</td><td>0</td><td>300s @ 50 rps</td><td>15000</td><td>50 req/s</td><td>0.00%</td><td>8.90 ms</td></tr><tr><td>Overload</td><td>FAILED</td><td>1</td><td>30s @ 400 rps</td><td>12000</td><td>310 req/s</td><td>88.09%</td><td>7865.60 ms</td></tr></tbody></table></div>
+      </section>
+      
+    <section class="warning" aria-live="polite">
+      <p class="eyebrow">FAILED overload evidence preserved</p>
+      <h2>Overload acceptance condition failed</h2>
+      <p>The overload profile failed its acceptance condition (<code>vusers.failed == 0</code>) and exited with status 1. The metrics are preserved as failure evidence and no retry occurred.</p>
+    </section>
+  
+      
+    <section>
+      <h2>Latency comparison</h2>
+      <p>P99 latency bars are scaled against the largest available p99 across the four required profiles.</p>
+      <svg viewBox="0 0 680 224" role="img" aria-labelledby="latency-title latency-desc">
+        <title id="latency-title">P99 latency comparison across benchmark profiles</title>
+        <desc id="latency-desc">Horizontal bars compare p99 latency for the baseline, staircase, sustained, and overload profiles.</desc>
+        
+      <g transform="translate(0 32)">
+        <text x="8" y="18" class="svg-label">Baseline (fastapi-zellit-20260822T155305Z-baseline)</text>
+        <rect x="184" y="2" width="376" height="18" rx="9" ry="9" class="svg-track"></rect>
+        <rect x="184" y="2" width="0" height="18" rx="9" ry="9" class="svg-bar svg-bar-baseline"></rect>
+        <text x="196" y="18" class="svg-value">7 ms</text>
+      </g>
+    
+      <g transform="translate(0 76)">
+        <text x="8" y="18" class="svg-label">Staircase (fastapi-zellit-20260822T155305Z-staircase)</text>
+        <rect x="184" y="2" width="376" height="18" rx="9" ry="9" class="svg-track"></rect>
+        <rect x="184" y="2" width="3" height="18" rx="9" ry="9" class="svg-bar svg-bar-staircase"></rect>
+        <text x="199" y="18" class="svg-value">63.40 ms</text>
+      </g>
+    
+      <g transform="translate(0 120)">
+        <text x="8" y="18" class="svg-label">Sustained (fastapi-zellit-20260822T155305Z-sustained)</text>
+        <rect x="184" y="2" width="376" height="18" rx="9" ry="9" class="svg-track"></rect>
+        <rect x="184" y="2" width="0" height="18" rx="9" ry="9" class="svg-bar svg-bar-sustained"></rect>
+        <text x="196" y="18" class="svg-value">8.90 ms</text>
+      </g>
+    
+      <g transform="translate(0 164)">
+        <text x="8" y="18" class="svg-label">Overload (fastapi-zellit-20260822T155305Z-overload)</text>
+        <rect x="184" y="2" width="376" height="18" rx="9" ry="9" class="svg-track"></rect>
+        <rect x="184" y="2" width="376" height="18" rx="9" ry="9" class="svg-bar svg-bar-overload"></rect>
+        <text x="572" y="18" class="svg-value">7865.60 ms</text>
+      </g>
+    
+      </svg>
+    </section>
+  
+      
+    <section>
+      <h2>Shared environment</h2>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>Generated at</td><td>2026-08-22T16:18:26.022Z</td><td>2026-08-22T16:18:26.022Z</td><td>2026-08-22T16:18:26.022Z</td><td>2026-08-22T16:18:26.022Z</td></tr><tr><td>Implementation</td><td>fastapi-zellit</td><td>fastapi-zellit</td><td>fastapi-zellit</td><td>fastapi-zellit</td></tr><tr><td>Artifact directory</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-baseline</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-staircase</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-sustained</td><td>/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-overload</td></tr><tr><td>Started at</td><td>2026-08-22T15:53:50.759Z</td><td>2026-08-22T15:55:23.026Z</td><td>2026-08-22T15:59:57.649Z</td><td>2026-08-22T16:05:39.820Z</td></tr><tr><td>Completed at</td><td>2026-08-22T15:54:54.951Z</td><td>2026-08-22T15:59:35.410Z</td><td>2026-08-22T16:05:06.101Z</td><td>2026-08-22T16:06:30.127Z</td></tr><tr><td>Status</td><td>SUCCEEDED</td><td>SUCCEEDED</td><td>SUCCEEDED</td><td>FAILED</td></tr><tr><td>Exit status</td><td>0</td><td>0</td><td>0</td><td>1</td></tr></tbody></table></div>
+    </section>
+  
+      
+    <section>
+      <h2>Versions</h2>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>artillery</td><td>2.0.33</td><td>2.0.33</td><td>2.0.33</td><td>2.0.33</td></tr><tr><td>asyncpg</td><td>0.31.0</td><td>0.31.0</td><td>0.31.0</td><td>0.31.0</td></tr><tr><td>fastapi</td><td>0.141.1</td><td>0.141.1</td><td>0.141.1</td><td>0.141.1</td></tr><tr><td>node</td><td>v22.23.2</td><td>v22.23.2</td><td>v22.23.2</td><td>v22.23.2</td></tr><tr><td>pnpm</td><td>11.21.0</td><td>11.21.0</td><td>11.21.0</td><td>11.21.0</td></tr><tr><td>postgresql</td><td>postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)</td><td>postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)</td><td>postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)</td><td>postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)</td></tr><tr><td>python</td><td>Python 3.12.12</td><td>Python 3.12.12</td><td>Python 3.12.12</td><td>Python 3.12.12</td></tr><tr><td>sqlalchemy</td><td>2.0.52</td><td>2.0.52</td><td>2.0.52</td><td>2.0.52</td></tr><tr><td>uvicorn</td><td>0.52.4</td><td>0.52.4</td><td>0.52.4</td><td>0.52.4</td></tr></tbody></table></div>
+    </section>
+  
+      
+    <section>
+      <h2>Runtime</h2>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>concurrency_model</td><td>asyncio</td><td>asyncio</td><td>asyncio</td><td>asyncio</td></tr><tr><td>database_access</td><td>sqlalchemy-async</td><td>sqlalchemy-async</td><td>sqlalchemy-async</td><td>sqlalchemy-async</td></tr><tr><td>database_driver</td><td>asyncpg</td><td>asyncpg</td><td>asyncpg</td><td>asyncpg</td></tr><tr><td>max_overflow</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>pool_size</td><td>20</td><td>20</td><td>20</td><td>20</td></tr><tr><td>runtime_label</td><td>uvicorn-1</td><td>uvicorn-1</td><td>uvicorn-1</td><td>uvicorn-1</td></tr><tr><td>server</td><td>uvicorn</td><td>uvicorn</td><td>uvicorn</td><td>uvicorn</td></tr><tr><td>workers</td><td>1</td><td>1</td><td>1</td><td>1</td></tr></tbody></table></div>
+    </section>
+  
+      
+    <section>
+      <h2>Dataset</h2>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>digest</td><td>d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862</td><td>d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862</td><td>d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862</td><td>d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862</td></tr><tr><td>generator_version</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>schema_version</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>seed</td><td>20260813</td><td>20260813</td><td>20260813</td><td>20260813</td></tr></tbody></table></div>
+    </section>
+  
+      
+    <section>
+      <h2>Request corpus</h2>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>rows</td><td>500</td><td>500</td><td>500</td><td>500</td></tr><tr><td>sha256</td><td>b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1</td><td>b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1</td><td>b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1</td><td>b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1</td></tr></tbody></table></div>
+    </section>
+  
+      
+    <section>
+      <h2>Git</h2>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Baseline</th><th scope="col">Staircase</th><th scope="col">Sustained</th><th scope="col">Overload</th></tr></thead><tbody><tr><td>gitRevision</td><td>f8388a1d59041e228196c8c38cc61afb5103c9a3</td><td>f8388a1d59041e228196c8c38cc61afb5103c9a3</td><td>f8388a1d59041e228196c8c38cc61afb5103c9a3</td><td>f8388a1d59041e228196c8c38cc61afb5103c9a3</td></tr><tr><td>runId</td><td>fastapi-zellit-20260822T155305Z-baseline</td><td>fastapi-zellit-20260822T155305Z-staircase</td><td>fastapi-zellit-20260822T155305Z-sustained</td><td>fastapi-zellit-20260822T155305Z-overload</td></tr></tbody></table></div>
+    </section>
+  
+      <section class="cards">
+        
+    <article class="card" data-profile="baseline">
+      <div class="card-header">
+        <div>
+          <p class="eyebrow">Baseline</p>
+          <h3>fastapi-zellit-20260822T155305Z-baseline</h3>
+        </div>
+        <div class="card-meta">
+          <p class="status-pill status-succeeded">SUCCEEDED</p>
+          <p class="artifact-path">Exit status: 0</p>
+          <p class="artifact-path">/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-baseline</p>
+        </div>
+      </div>
+      <p>60s @ 5 rps</p>
+      <dl class="metrics-grid">
+        <div class="metric"><dt>Requests</dt><dd>300</dd></div>
+        <div class="metric"><dt>Request rate</dt><dd>5 req/s</dd></div>
+        <div class="metric"><dt>Failed users</dt><dd>0</dd></div>
+        <div class="metric"><dt>Error count</dt><dd>0</dd></div>
+        <div class="metric"><dt>Error rate</dt><dd>0.00%</dd></div>
+        <div class="metric"><dt>P50 latency</dt><dd>5 ms</dd></div>
+        <div class="metric"><dt>P95 latency</dt><dd>6 ms</dd></div>
+        <div class="metric"><dt>P99 latency</dt><dd>7 ms</dd></div>
+        <div class="metric"><dt>Max latency</dt><dd>27 ms</dd></div>
+      </dl>
+      <h4>Effective phases</h4>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Phase</th><th scope="col">Name</th><th scope="col">Duration</th><th scope="col">Arrival rate</th></tr></thead><tbody><tr><td>1</td><td>Not available</td><td>60 s</td><td>5 req/s</td></tr></tbody></table></div>
+    </article>
+  
+    <article class="card" data-profile="staircase">
+      <div class="card-header">
+        <div>
+          <p class="eyebrow">Staircase</p>
+          <h3>fastapi-zellit-20260822T155305Z-staircase</h3>
+        </div>
+        <div class="card-meta">
+          <p class="status-pill status-succeeded">SUCCEEDED</p>
+          <p class="artifact-path">Exit status: 0</p>
+          <p class="artifact-path">/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-staircase</p>
+        </div>
+      </div>
+      <p>warm-up: 20s @ 5 rps; 10 rps: 45s @ 10 rps; 25 rps: 45s @ 25 rps; 50 rps: 45s @ 50 rps; 100 rps: 45s @ 100 rps; 200 rps: 45s @ 200 rps</p>
+      <dl class="metrics-grid">
+        <div class="metric"><dt>Requests</dt><dd>17425</dd></div>
+        <div class="metric"><dt>Request rate</dt><dd>93 req/s</dd></div>
+        <div class="metric"><dt>Failed users</dt><dd>0</dd></div>
+        <div class="metric"><dt>Error count</dt><dd>0</dd></div>
+        <div class="metric"><dt>Error rate</dt><dd>0.00%</dd></div>
+        <div class="metric"><dt>P50 latency</dt><dd>4 ms</dd></div>
+        <div class="metric"><dt>P95 latency</dt><dd>8.90 ms</dd></div>
+        <div class="metric"><dt>P99 latency</dt><dd>63.40 ms</dd></div>
+        <div class="metric"><dt>Max latency</dt><dd>100 ms</dd></div>
+      </dl>
+      <h4>Effective phases</h4>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Phase</th><th scope="col">Name</th><th scope="col">Duration</th><th scope="col">Arrival rate</th></tr></thead><tbody><tr><td>1</td><td>warm-up</td><td>20 s</td><td>5 req/s</td></tr><tr><td>2</td><td>10 rps</td><td>45 s</td><td>10 req/s</td></tr><tr><td>3</td><td>25 rps</td><td>45 s</td><td>25 req/s</td></tr><tr><td>4</td><td>50 rps</td><td>45 s</td><td>50 req/s</td></tr><tr><td>5</td><td>100 rps</td><td>45 s</td><td>100 req/s</td></tr><tr><td>6</td><td>200 rps</td><td>45 s</td><td>200 req/s</td></tr></tbody></table></div>
+    </article>
+  
+    <article class="card" data-profile="sustained">
+      <div class="card-header">
+        <div>
+          <p class="eyebrow">Sustained</p>
+          <h3>fastapi-zellit-20260822T155305Z-sustained</h3>
+        </div>
+        <div class="card-meta">
+          <p class="status-pill status-succeeded">SUCCEEDED</p>
+          <p class="artifact-path">Exit status: 0</p>
+          <p class="artifact-path">/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-sustained</p>
+        </div>
+      </div>
+      <p>300s @ 50 rps</p>
+      <dl class="metrics-grid">
+        <div class="metric"><dt>Requests</dt><dd>15000</dd></div>
+        <div class="metric"><dt>Request rate</dt><dd>50 req/s</dd></div>
+        <div class="metric"><dt>Failed users</dt><dd>0</dd></div>
+        <div class="metric"><dt>Error count</dt><dd>0</dd></div>
+        <div class="metric"><dt>Error rate</dt><dd>0.00%</dd></div>
+        <div class="metric"><dt>P50 latency</dt><dd>6 ms</dd></div>
+        <div class="metric"><dt>P95 latency</dt><dd>7.90 ms</dd></div>
+        <div class="metric"><dt>P99 latency</dt><dd>8.90 ms</dd></div>
+        <div class="metric"><dt>Max latency</dt><dd>58 ms</dd></div>
+      </dl>
+      <h4>Effective phases</h4>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Phase</th><th scope="col">Name</th><th scope="col">Duration</th><th scope="col">Arrival rate</th></tr></thead><tbody><tr><td>1</td><td>Not available</td><td>300 s</td><td>50 req/s</td></tr></tbody></table></div>
+    </article>
+  
+    <article class="card" data-profile="overload">
+      <div class="card-header">
+        <div>
+          <p class="eyebrow">Overload</p>
+          <h3>fastapi-zellit-20260822T155305Z-overload</h3>
+        </div>
+        <div class="card-meta">
+          <p class="status-pill status-failed">FAILED</p>
+          <p class="artifact-path">Exit status: 1</p>
+          <p class="artifact-path">/home/calvin/Documents/Work/2026_DjangoCon_BatteriesVsSpeed/.worktrees/fastapi-zellit/research/demo/shared/zellit/benchmark/results/fastapi-zellit-20260822T155305Z-overload</p>
+        </div>
+      </div>
+      <p>30s @ 400 rps</p>
+      <dl class="metrics-grid">
+        <div class="metric"><dt>Requests</dt><dd>12000</dd></div>
+        <div class="metric"><dt>Request rate</dt><dd>310 req/s</dd></div>
+        <div class="metric"><dt>Failed users</dt><dd>10571</dd></div>
+        <div class="metric"><dt>Error count</dt><dd>10571</dd></div>
+        <div class="metric"><dt>Error rate</dt><dd>88.09%</dd></div>
+        <div class="metric"><dt>P50 latency</dt><dd>424.20 ms</dd></div>
+        <div class="metric"><dt>P95 latency</dt><dd>7260.80 ms</dd></div>
+        <div class="metric"><dt>P99 latency</dt><dd>7865.60 ms</dd></div>
+        <div class="metric"><dt>Max latency</dt><dd>7941 ms</dd></div>
+      </dl>
+      <h4>Effective phases</h4>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Phase</th><th scope="col">Name</th><th scope="col">Duration</th><th scope="col">Arrival rate</th></tr></thead><tbody><tr><td>1</td><td>Not available</td><td>30 s</td><td>400 req/s</td></tr></tbody></table></div>
+    </article>
+  
+      </section>
+      <section>
+        <h2>Caveats</h2>
+        <ul class="caveats">
+          <li>This report reflects a single trial per required profile.</li>
+          <li>Each profile is a workload-specific benchmark observation with intentionally different loads and durations.</li>
+          <li>The overload profile is meant to push the service beyond the lighter baseline, staircase, and sustained loads.</li>
+          <li>If the overload profile fails its acceptance condition, its status and metrics are preserved as failure evidence without retry.</li>
+          <li>This is not a FastAPI-versus-Django comparison.</li>
+          <li>This report does not support production-capacity inference.</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>
