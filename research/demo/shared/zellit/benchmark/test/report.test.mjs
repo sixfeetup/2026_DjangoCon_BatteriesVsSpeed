@@ -6,7 +6,7 @@ import path from 'node:path'
 import test from 'node:test'
 import {fileURLToPath} from 'node:url'
 
-import {renderReport} from '../scripts/generate-report.mjs'
+import {deriveReportIdentity, renderReport} from '../scripts/generate-report.mjs'
 import {loadRun} from '../scripts/report-data.mjs'
 
 const benchmarkDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -28,11 +28,12 @@ async function writeJson(directory, filename, value) {
 
 async function createRunFixture({
   profile = 'baseline',
-  runId = `fastapi-zellit-${profile}-20260822T120000Z`,
+  implementation = 'fastapi-zellit',
+  runId = `${implementation}-${profile}-20260822T120000Z`,
   directoryName = runId,
   status = 'succeeded',
   exitStatus = status === 'failed' ? 1 : 0,
-  imageId = 'fastapi-image-a',
+  imageId = implementation === 'django-zellit' ? 'sha256:django' : 'fastapi-image-a',
   includeP99 = true,
   omit = [],
   omitMetricGroups = [],
@@ -80,7 +81,7 @@ async function createRunFixture({
     status,
     exit_status: exitStatus,
     profile,
-    implementation: 'fastapi-zellit',
+    implementation,
     git_revision: 'abc123',
     dataset: {
       schema_version: '1',
@@ -93,28 +94,33 @@ async function createRunFixture({
       rows: 500
     },
     effective_phases: config.config.phases,
-    versions: {
-      python: 'Python 3.12.12',
-      fastapi: '0.141.1',
-      node: 'v22.23.2'
-    },
-    images: {
-      fastapi: imageId,
-      data: 'data-image',
-      artillery: 'artillery-image',
-      postgresql: 'postgresql-image'
-    }
+    versions: implementation === 'django-zellit'
+      ? {python: 'Python 3.12.12', django: '5.2.11', django_ninja: '1.5.3'}
+      : {python: 'Python 3.12.12', fastapi: '0.141.1', node: 'v22.23.2'},
+    images: implementation === 'django-zellit'
+      ? {django: imageId, data: 'sha256:data', artillery: 'sha256:artillery', postgresql: 'sha256:postgres'}
+      : {fastapi: imageId, data: 'data-image', artillery: 'artillery-image', postgresql: 'postgresql-image'}
   }
-  const runtime = {
-    runtime_label: 'uvicorn-1',
-    server: 'uvicorn',
-    workers: 1,
-    concurrency_model: 'asyncio',
-    database_access: 'sqlalchemy-async',
-    database_driver: 'asyncpg',
-    pool_size: 20,
-    max_overflow: 0
-  }
+  const runtime = implementation === 'django-zellit'
+    ? {
+        runtime_label: 'gevent-1',
+        server: 'gunicorn',
+        workers: 1,
+        concurrency_model: 'gevent',
+        database_access: 'django-orm',
+        database_driver: 'psycopg',
+        pool_size: 20
+      }
+    : {
+        runtime_label: 'uvicorn-1',
+        server: 'uvicorn',
+        workers: 1,
+        concurrency_model: 'asyncio',
+        database_access: 'sqlalchemy-async',
+        database_driver: 'asyncpg',
+        pool_size: 20,
+        max_overflow: 0
+      }
   mutate({config, raw, metadata, runtime})
 
   const files = [
@@ -295,6 +301,132 @@ test('report data rejects mismatched directory and run IDs', async () => {
   await assert.rejects(loadRun(runDirectory), /metadata\.run_id must match the run directory name/)
 })
 
+test('report identity derives Django identity from four complete runs', async () => {
+  const runDirectories = await Promise.all(['baseline', 'staircase', 'sustained', 'overload'].map((profile) =>
+    createRunFixture({profile, implementation: 'django-zellit'})
+  ))
+  const runs = await Promise.all(runDirectories.map((runDirectory) => loadRun(runDirectory)))
+
+  assert.deepEqual(deriveReportIdentity(runs), {
+    frameworkName: 'Django',
+    implementation: 'django-zellit',
+    runtimeLabel: 'gevent-1',
+    title: 'Django Zellit gevent-1 benchmark report',
+    heading: 'Django Zellit gevent-1 benchmark observations',
+    applicationImageKey: 'django'
+  })
+})
+
+test('report identity preserves the existing FastAPI identity', async () => {
+  const runDirectories = await Promise.all(['baseline', 'staircase', 'sustained', 'overload'].map((profile) =>
+    createRunFixture({profile})
+  ))
+  const runs = await Promise.all(runDirectories.map((runDirectory) => loadRun(runDirectory)))
+
+  assert.deepEqual(deriveReportIdentity(runs), {
+    frameworkName: 'FastAPI',
+    implementation: 'fastapi-zellit',
+    runtimeLabel: 'uvicorn-1',
+    title: 'FastAPI Zellit benchmark report',
+    heading: 'FastAPI Zellit benchmark observations',
+    applicationImageKey: 'fastapi'
+  })
+})
+
+test('report identity rejects mixed, missing, and unsupported identities', async () => {
+  const runDirectories = await Promise.all(['baseline', 'staircase', 'sustained', 'overload'].map((profile) =>
+    createRunFixture({profile})
+  ))
+  const runs = await Promise.all(runDirectories.map((runDirectory) => loadRun(runDirectory)))
+
+  assert.throws(
+    () => deriveReportIdentity(runs.map((run, index) => index === 3 ? {...run, implementation: 'django-zellit'} : run)),
+    /All runs must use the same implementation/
+  )
+  assert.throws(
+    () => deriveReportIdentity(runs.map((run, index) => index === 3 ? {...run, runtime: {...run.runtime, runtime_label: 'uvicorn-2'}} : run)),
+    /All runs must use the same runtime label/
+  )
+  assert.throws(
+    () => deriveReportIdentity(runs.map((run, index) => index === 3 ? {...run, runtime: {...run.runtime, runtime_label: ''}} : run)),
+    /Every run must have a runtime label/
+  )
+  assert.throws(
+    () => deriveReportIdentity(runs.map((run) => ({...run, implementation: 'flask-zellit'}))),
+    /Unsupported implementation: flask-zellit/
+  )
+})
+
+test('Django report renders dynamic identity and preserves methodology caveats', async () => {
+  const runDirectories = await Promise.all(['baseline', 'staircase', 'sustained', 'overload'].map((profile) =>
+    createRunFixture({profile, implementation: 'django-zellit'})
+  ))
+  const runs = await Promise.all(runDirectories.map((runDirectory) => loadRun(runDirectory)))
+
+  const html = renderReport(runs, '2026-08-22T12:10:00Z')
+
+  assert.match(html, /<title>Django Zellit gevent-1 benchmark report<\/title>/)
+  assert.match(html, /<h1>Django Zellit gevent-1 benchmark observations<\/h1>/)
+  for (const value of [
+    'django-zellit', 'Python 3.12.12', '5.2.11', '1.5.3', 'gevent-1', 'gunicorn',
+    'gevent', 'django-orm', 'psycopg', 'sha256:django', 'sha256:data',
+    'sha256:artillery', 'sha256:postgres'
+  ]) {
+    assert.match(html, new RegExp(escapeRegExp(value)))
+  }
+  assert.doesNotMatch(html, /The FastAPI application image identity changed/)
+  assert.match(html, /single trial/i)
+  assert.match(html, /workload-specific benchmark observation/i)
+  assert.match(html, /overload profile is meant to push the service/i)
+  assert.match(html, /socket timeouts are excluded from Artillery(?:'|’|&#39;)s response-latency distribution/i)
+  assert.match(html, /latency sample count/i)
+  assert.match(html, /Application image identities are reported per profile/i)
+  assert.match(html, /does not itself establish a FastAPI-versus-Django comparison/i)
+  assert.match(html, /does not support production-capacity inference/i)
+  assert.match(html, /without declaring a winner or full-suite success/i)
+})
+
+test('Django report names Django when application image identity changes', async () => {
+  const runDirectories = await Promise.all([
+    createRunFixture({profile: 'baseline', implementation: 'django-zellit', imageId: 'sha256:django-a'}),
+    createRunFixture({profile: 'staircase', implementation: 'django-zellit', imageId: 'sha256:django-a'}),
+    createRunFixture({profile: 'sustained', implementation: 'django-zellit', imageId: 'sha256:django-b'}),
+    createRunFixture({profile: 'overload', implementation: 'django-zellit', imageId: 'sha256:django-b'})
+  ])
+  const runs = await Promise.all(runDirectories.map((runDirectory) => loadRun(runDirectory)))
+
+  const html = renderReport(runs, '2026-08-22T12:10:00Z')
+
+  assert.match(html, /The Django application image identity changed across the profiles/)
+  assert.match(html, /sha256:django-a/)
+  assert.match(html, /sha256:django-b/)
+  assert.doesNotMatch(html, /The FastAPI application image identity changed/)
+})
+
+test('report render and CLI reject mixed implementation identity', async () => {
+  const runDirectories = await Promise.all([
+    createRunFixture({profile: 'baseline'}),
+    createRunFixture({profile: 'staircase'}),
+    createRunFixture({profile: 'sustained'}),
+    createRunFixture({profile: 'overload', implementation: 'django-zellit'})
+  ])
+  const runs = await Promise.all(runDirectories.map((runDirectory) => loadRun(runDirectory)))
+
+  assert.throws(
+    () => renderReport(runs, '2026-08-22T12:10:00Z'),
+    /All runs must use the same implementation/
+  )
+
+  const outputPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'zellit-report-html-')), 'report.html')
+  const result = spawnSync(process.execPath, [generateReportScript, outputPath, ...runDirectories], {
+    cwd: benchmarkDir,
+    encoding: 'utf8'
+  })
+
+  assert.notEqual(result.status, 0)
+  assert.match(result.stderr || result.stdout, /All runs must use the same implementation/)
+})
+
 test('report render creates standalone HTML for four profiles', async () => {
   const runDirectories = await Promise.all([
     createRunFixture({profile: 'sustained', includeP99: false}),
@@ -319,7 +451,7 @@ test('report render creates standalone HTML for four profiles', async () => {
   }
   assert.match(html, /single trial/i)
   assert.match(html, /workload-specific benchmark observation/i)
-  assert.match(html, /not a FastAPI-versus-Django comparison/i)
+  assert.match(html, /does not itself establish a FastAPI-versus-Django comparison/i)
   assert.match(html, /Not available/)
   assert.match(html, /&lt;unsafe&gt;/)
   assert.match(html, /effective only/)
@@ -343,6 +475,7 @@ test('report render discloses image changes and response-latency sample coverage
   const html = renderReport(runs, '2026-08-22T12:10:00Z')
 
   assert.match(html, /Application image identity changed mid-suite/i)
+  assert.match(html, /The FastAPI application image identity changed across the profiles/)
   assert.match(html, /94d26d-baseline-image/)
   assert.match(html, /bb963a-later-image/)
   assert.match(html, /root cause is not established (?:by|from) the preserved artifacts/i)

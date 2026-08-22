@@ -12,6 +12,18 @@ const profileLabels = {
   sustained: 'Sustained',
   overload: 'Overload'
 }
+const implementationIdentities = new Map([
+  ['fastapi-zellit', {
+    frameworkName: 'FastAPI',
+    title: 'FastAPI Zellit benchmark report',
+    heading: 'FastAPI Zellit benchmark observations',
+    applicationImageKey: 'fastapi'
+  }],
+  ['django-zellit', {
+    frameworkName: 'Django',
+    applicationImageKey: 'django'
+  }]
+])
 
 export function escapeHtml(value) {
   return String(value ?? '')
@@ -20,6 +32,40 @@ export function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
+}
+
+export function deriveReportIdentity(runs) {
+  if (!Array.isArray(runs) || runs.length === 0) throw new Error('At least one run is required to derive report identity')
+
+  const implementations = runs.map((run) => run?.implementation)
+  if (new Set(implementations).size !== 1) throw new Error('All runs must use the same implementation')
+
+  const runtimeLabels = runs.map((run) => run?.runtime?.runtime_label)
+  if (runtimeLabels.some((runtimeLabel) => typeof runtimeLabel !== 'string' || runtimeLabel.trim() === '')) {
+    throw new Error('Every run must have a runtime label')
+  }
+  if (new Set(runtimeLabels).size !== 1) throw new Error('All runs must use the same runtime label')
+
+  const implementation = implementations[0]
+  const runtimeLabel = runtimeLabels[0]
+  const mappedIdentity = implementationIdentities.get(implementation)
+  if (!mappedIdentity) throw new Error(`Unsupported implementation: ${String(implementation)}`)
+
+  const title = implementation === 'django-zellit'
+    ? `${mappedIdentity.frameworkName} Zellit ${runtimeLabel} benchmark report`
+    : mappedIdentity.title
+  const heading = implementation === 'django-zellit'
+    ? `${mappedIdentity.frameworkName} Zellit ${runtimeLabel} benchmark observations`
+    : mappedIdentity.heading
+
+  return {
+    frameworkName: mappedIdentity.frameworkName,
+    implementation,
+    runtimeLabel,
+    title,
+    heading,
+    applicationImageKey: mappedIdentity.applicationImageKey
+  }
 }
 
 function sortRuns(runs) {
@@ -59,10 +105,10 @@ function renderOverloadWarning(overloadRun) {
   `
 }
 
-function renderImageIdentityWarning(runs) {
+function renderImageIdentityWarning(runs, reportIdentity) {
   const identityGroups = new Map()
   for (const run of runs) {
-    const identity = run.images.fastapi
+    const identity = run.images[reportIdentity.applicationImageKey]
     const key = identity === null || identity === undefined ? 'Not available' : String(identity)
     const profiles = identityGroups.get(key) || []
     profiles.push(profileLabels[run.profile])
@@ -83,7 +129,7 @@ function renderImageIdentityWarning(runs) {
     <section class="warning methodology-warning" aria-live="polite">
       <p class="eyebrow">Methodology caveat</p>
       <h2>Application image identity changed mid-suite</h2>
-      <p>The FastAPI application image identity changed across the profiles: ${identities}.</p>
+      <p>The ${escapeHtml(reportIdentity.frameworkName)} application image identity changed across the profiles: ${identities}.</p>
       <p>${identityContext} The root cause is not established by the preserved artifacts. Cross-profile comparisons are therefore qualified; no equivalence between these application images is implied.</p>
     </section>
   `
@@ -256,6 +302,7 @@ function renderRunCard(run) {
 export function renderReport(runs, generatedAt) {
   const sortedRuns = sortRuns(runs)
   validateRunStatuses(sortedRuns)
+  const reportIdentity = deriveReportIdentity(sortedRuns)
   const overloadRun = sortedRuns.find((run) => run.profile === 'overload')
   const summaryRows = sortedRuns.map((run) => [
     profileLabels[run.profile],
@@ -278,7 +325,7 @@ export function renderReport(runs, generatedAt) {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>FastAPI Zellit benchmark report</title>
+    <title>${escapeHtml(reportIdentity.title)}</title>
     <style>
       :root {
         color-scheme: light;
@@ -443,13 +490,13 @@ export function renderReport(runs, generatedAt) {
     <main>
       <section>
         <p class="eyebrow">Standalone benchmark report</p>
-        <h1>FastAPI Zellit benchmark observations</h1>
+        <h1>${escapeHtml(reportIdentity.heading)}</h1>
         <p class="lede">Generated at ${escapeHtml(generatedAt)}. ${escapeHtml(summaryLead)}</p>
         <p class="lede">Each row below is a workload-specific benchmark observation rather than a normalized head-to-head ranking.</p>
         ${renderTable(['Profile', 'Status', 'Exit status', 'Load profile', 'Requests', 'Responses', 'Latency samples', 'Request rate', 'Error rate', 'P99 latency'], summaryRows)}
       </section>
       ${renderOverloadWarning(overloadRun)}
-      ${renderImageIdentityWarning(sortedRuns)}
+      ${renderImageIdentityWarning(sortedRuns, reportIdentity)}
       ${renderLatencyChart(sortedRuns)}
       ${renderEnvironmentSection(sortedRuns, generatedAt)}
       ${renderObjectSection('Versions', sortedRuns, (run) => run.versions)}
@@ -470,7 +517,7 @@ export function renderReport(runs, generatedAt) {
           <li>If the overload profile fails its acceptance condition, its status and metrics are preserved as failure evidence without retry.</li>
           <li>Socket timeouts are excluded from Artillery's response-latency distribution; latency percentiles cover only requests represented by the displayed latency sample count, not every attempted request.</li>
           <li>Application image identities are reported per profile. Any identity change qualifies cross-profile comparisons and must not be treated as equivalent inputs.</li>
-          <li>This is not a FastAPI-versus-Django comparison.</li>
+          <li>This standalone report does not itself establish a FastAPI-versus-Django comparison.</li>
           <li>This report does not support production-capacity inference.</li>
         </ul>
       </section>
