@@ -1,22 +1,26 @@
+import {constants as fsConstants, readFileSync} from 'node:fs'
+import {lstat, open, readdir} from 'node:fs/promises'
 import http from 'node:http'
-import {readdir, readFile, stat} from 'node:fs/promises'
+import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import {fileURLToPath, pathToFileURL} from 'node:url'
 
 const reportPattern = /^fastapi-zellit-.*\.html$/
 const parentPollIntervalMs = 250
+const startupLauncherIdentity = captureLauncherIdentity()
 
 export async function findLatestReport(reportsDirectory) {
   const resolvedDirectory = path.resolve(reportsDirectory)
   const entries = await readdir(resolvedDirectory, {withFileTypes: true})
-  const candidates = await Promise.all(entries
+  const candidates = (await Promise.all(entries
     .filter((entry) => entry.isFile() && reportPattern.test(entry.name))
     .map(async (entry) => {
       const absolutePath = path.resolve(resolvedDirectory, entry.name)
-      const details = await stat(absolutePath)
+      const details = await lstat(absolutePath)
+      if (!details.isFile()) return null
       return {absolutePath, name: entry.name, mtimeMs: details.mtimeMs}
-    }))
+    }))).filter((candidate) => candidate !== null)
 
   candidates.sort((left, right) => {
     if (right.mtimeMs !== left.mtimeMs) return right.mtimeMs - left.mtimeMs
@@ -137,10 +141,12 @@ export async function main({
   stdout = process.stdout,
   stderr = process.stderr,
   processLike = process,
-  createServer = createReportServer
+  createServer = createReportServer,
+  launcherIdentity = startupLauncherIdentity
 } = {}) {
   let server = null
   let listening = false
+  let cleanupShutdownHandlers = () => {}
 
   try {
     const config = resolveServerConfig(env)
@@ -155,12 +161,13 @@ export async function main({
 
     await listen(server, config)
     listening = true
+    cleanupShutdownHandlers = installShutdownHandlers(server, processLike, {launcherIdentity})
     for (const line of buildStartupLines({reportPath, ...config})) {
       stdout.write(`${line}\n`)
     }
-    installShutdownHandlers(server, processLike)
     return server
   } catch (error) {
+    cleanupShutdownHandlers()
     let startupError = error
     if (listening) {
       try {
@@ -180,10 +187,8 @@ export function createReportServer(reportPath, options = {}) {
   const resolvedReportPath = path.resolve(reportPath)
 
   return http.createServer(async (request, response) => {
-    const requestUrl = request.url ?? '/'
-    const pathname = new URL(requestUrl, 'http://localhost').pathname
-
-    if (!isAllowedRootRequest(requestUrl, pathname)) {
+    const requestTarget = request.url ?? ''
+    if (!isAllowedRootRequest(requestTarget)) {
       sendText(response, 404, 'Not Found')
       return
     }
@@ -195,7 +200,7 @@ export function createReportServer(reportPath, options = {}) {
     }
 
     try {
-      const report = await readFile(resolvedReportPath)
+      const report = await readSelectedRegularFile(resolvedReportPath)
       const headers = {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': String(report.byteLength),
@@ -215,8 +220,28 @@ export function createReportServer(reportPath, options = {}) {
   })
 }
 
-function isAllowedRootRequest(requestUrl, pathname) {
-  return pathname === '/' && (requestUrl === '/' || requestUrl === '/?')
+function isAllowedRootRequest(requestTarget) {
+  return requestTarget === '/' || requestTarget === '/?'
+}
+
+async function readSelectedRegularFile(reportPath) {
+  const noFollowFlag = fsConstants.O_NOFOLLOW ?? 0
+  const handle = await open(reportPath, fsConstants.O_RDONLY | noFollowFlag)
+  try {
+    const [openedDetails, pathDetails] = await Promise.all([
+      handle.stat(),
+      lstat(reportPath)
+    ])
+    if (!openedDetails.isFile() || !pathDetails.isFile()) {
+      throw new Error('Selected report path is not a regular file')
+    }
+    if (openedDetails.dev !== pathDetails.dev || openedDetails.ino !== pathDetails.ino) {
+      throw new Error('Selected report path changed while it was being opened')
+    }
+    return await handle.readFile()
+  } finally {
+    await handle.close()
+  }
 }
 
 function sendText(response, statusCode, body) {
@@ -229,17 +254,17 @@ function sendText(response, statusCode, body) {
 }
 
 function installParentMonitor(shutdown, processLike, options) {
-  const initialParentPid = processLike.ppid
+  const launcherIdentity = options.launcherIdentity ?? startupLauncherIdentity
   const hasInjectableLiveness = typeof options.isProcessAlive === 'function'
   if (
     (!hasInjectableLiveness && processLike !== process) ||
-    !Number.isInteger(initialParentPid) ||
-    initialParentPid <= 1
+    !Number.isInteger(launcherIdentity?.pid) ||
+    launcherIdentity.pid <= 1
   ) {
     return () => {}
   }
 
-  const isProcessAlive = options.isProcessAlive ?? defaultProcessIsAlive
+  const isProcessAlive = options.isProcessAlive ?? defaultProcessIdentityIsAlive
   const setIntervalFn = options.setInterval ?? setInterval
   const clearIntervalFn = options.clearInterval ?? clearInterval
   let active = true
@@ -250,20 +275,24 @@ function installParentMonitor(shutdown, processLike, options) {
     if (timer !== undefined) clearIntervalFn(timer)
   }
   const poll = () => {
-    if (!active) return
+    if (!active) return false
 
-    let parentAlive = true
+    let launcherAlive = true
     try {
-      parentAlive = isProcessAlive(initialParentPid)
+      launcherAlive = isProcessAlive(launcherIdentity)
     } catch {
-      return
+      return true
     }
-    if (processLike.ppid === initialParentPid && parentAlive) return
+    const stillDirectParent = !launcherIdentity.directParent ||
+      processLike.ppid === launcherIdentity.pid
+    if (stillDirectParent && launcherAlive) return true
 
     stop()
     shutdown()
+    return false
   }
 
+  if (!poll()) return stop
   timer = setIntervalFn(poll, parentPollIntervalMs)
   try {
     timer?.unref?.()
@@ -274,13 +303,78 @@ function installParentMonitor(shutdown, processLike, options) {
   return stop
 }
 
-function defaultProcessIsAlive(pid) {
+function captureLauncherIdentity() {
+  const directParentPid = process.ppid
+  if (!Number.isInteger(directParentPid) || directParentPid <= 1) return null
+
+  const fallback = {
+    pid: directParentPid,
+    directParent: true,
+    source: 'synchronous-parent'
+  }
+  if (process.platform !== 'linux') return fallback
+
+  const directParent = readLinuxProcessIdentity(directParentPid)
+  if (!directParent) return fallback
+  const directIdentity = {
+    ...directParent,
+    directParent: true,
+    source: 'linux-proc-parent'
+  }
+  if (process.env.npm_lifecycle_event !== 'report:serve') return directIdentity
+
+  const ancestors = [directParent]
+  let current = directParent
+  for (let depth = 0; depth < 15 && current.ppid > 1; depth += 1) {
+    current = readLinuxProcessIdentity(current.ppid)
+    if (!current) break
+    ancestors.push(current)
+  }
+  const packageLauncher = ancestors.find(isPnpmLauncher)
+  if (!packageLauncher) return directIdentity
+  return {
+    ...packageLauncher,
+    directParent: packageLauncher.pid === directParentPid,
+    source: 'linux-proc-pnpm-ancestor'
+  }
+}
+
+function readLinuxProcessIdentity(pid) {
   try {
-    process.kill(pid, 0)
-    return true
+    const statContents = readFileSync(`/proc/${pid}/stat`, 'utf8')
+    const closingParenthesis = statContents.lastIndexOf(')')
+    if (closingParenthesis < 0) return null
+    const fields = statContents.slice(closingParenthesis + 2).trim().split(/\s+/)
+    const commandContents = readFileSync(`/proc/${pid}/cmdline`)
+    return {
+      pid,
+      ppid: Number.parseInt(fields[1], 10),
+      startTime: fields[19],
+      argv: commandContents.toString('utf8').split('\0').filter(Boolean)
+    }
+  } catch (error) {
+    if (error.code === 'ENOENT' || error.code === 'ESRCH') return null
+    return null
+  }
+}
+
+function isPnpmLauncher(identity) {
+  const basenames = identity.argv.map((argument) => path.basename(argument).toLowerCase())
+  const pnpmIndex = basenames.findIndex((name) => name === 'pnpm' || name === 'pnpm.cjs')
+  if (pnpmIndex < 0) return false
+  return identity.argv.slice(pnpmIndex + 1).includes('report:serve')
+}
+
+function defaultProcessIdentityIsAlive(identity) {
+  try {
+    process.kill(identity.pid, 0)
   } catch (error) {
     return error.code !== 'ESRCH'
   }
+
+  if (process.platform !== 'linux' || identity.startTime === undefined) return true
+  const current = readLinuxProcessIdentity(identity.pid)
+  return current !== null && current.startTime === identity.startTime
 }
 
 function closeListener(server) {
@@ -303,16 +397,32 @@ function defaultReportsDirectory() {
 }
 
 function formatUrl(host, port) {
-  const formattedHost = host.includes(':') && !host.startsWith('[') ? `[${host}]` : host
+  const formattedHost = net.isIP(host) === 6 ? `[${host}]` : host
   return `http://${formattedHost}:${port}/`
 }
 
 function isAllInterfaces(host) {
-  return host === '0.0.0.0' || host === '::'
+  return classifyHost(host) === 'wildcard'
 }
 
 function isLoopback(host) {
-  return host === 'localhost' || host === '::1' || /^127(?:\.|$)/.test(host)
+  return classifyHost(host) === 'loopback'
+}
+
+function classifyHost(host) {
+  if (host.toLowerCase() === 'localhost') return 'loopback'
+  const family = net.isIP(host)
+  if (family === 4) {
+    if (host === '0.0.0.0') return 'wildcard'
+    return host.startsWith('127.') ? 'loopback' : 'external'
+  }
+  if (family !== 6) return 'external'
+
+  const canonical = net.SocketAddress.parse(`[${host}]:0`)?.address.toLowerCase()
+  if (canonical === '::') return 'wildcard'
+  if (canonical === '::1') return 'loopback'
+  const mappedIpv4 = canonical?.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1]
+  return mappedIpv4 === undefined ? 'external' : classifyHost(mappedIpv4)
 }
 
 function resolveHost(value) {

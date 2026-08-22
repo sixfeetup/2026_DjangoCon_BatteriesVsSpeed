@@ -209,3 +209,13 @@ Expected: all commands exit 0 and startup log includes the selected report path 
 ## Approved Task 2 Shutdown Amendment
 
 Approved amendment: keep exact `corepack pnpm report:serve` / package script. For a background smoke that sends SIGTERM only to the pnpm launcher PID, accept pnpm exit 143, but Node must detect launcher/parent exit and shut itself down without an orphan. Verify foreground/process-group signal behavior separately. The prior requirement that `wait "$pid"` return 0 is superseded only for launcher-only SIGTERM.
+
+## Final-Review Hardening Amendment
+
+- Capture the launcher/parent process identity synchronously at module initialization. Install monitoring before readiness output and check the captured identity immediately before scheduling polling.
+- Monitor the portable immediate-parent identity by default. For the Linux Corepack → pnpm → lifecycle shell → Node topology, synchronously snapshot `/proc` ancestry, select the actual `pnpm report:serve` launcher, and retain its start time so PID reuse cannot look alive. Document that launcher-only shutdown through a surviving lifecycle shell relies on this Linux `/proc` path.
+- Reject every raw request target except exact `/` and `/?` without constructing a general URL.
+- During discovery, revalidate candidate type with `lstat`. For every GET/HEAD, open the fixed selected path with no-follow flags where supported, `fstat` the descriptor, compare it with current `lstat` identity, require a regular file, and read from the descriptor.
+- Canonicalize wildcard and loopback IP literals, including expanded IPv6 and IPv4-mapped IPv6 forms.
+- Add focused tests for immediate launcher checks, the exact package-launcher topology, separate direct process-group SIGTERM, malformed raw targets with a follow-up valid request, symlink/directory replacement, canonical host forms, and selection remaining fixed after a newer report is created.
+- Use condition polling and cleanup hooks for process tests; prove both the recorded Node identity and listener disappear after signaling only the returned package-launcher PID.

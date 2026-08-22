@@ -24,7 +24,7 @@ fastapi-zellit-*.html
 
 It selects the newest report by modification time, using the filename as a deterministic tie-breaker. If no matching report exists, startup fails with a clear error and nonzero exit status.
 
-The selected report is resolved once at startup. Creating a newer report while the server is running does not silently switch the served document.
+The selected report is resolved once at startup. Creating a newer report while the server is running does not silently switch the served document. Discovery checks candidate metadata with `lstat` after the directory-entry filter so a changed symlink or non-regular entry is not selected.
 
 ## Network Behavior
 
@@ -33,7 +33,7 @@ The default listener is:
 - host: `0.0.0.0`
 - port: `4173`
 
-`REPORT_HOST` and `REPORT_PORT` override those defaults. The port must be an integer from 1 through 65535. Invalid configuration fails before listening.
+`REPORT_HOST` and `REPORT_PORT` override those defaults. The port must be an integer from 1 through 65535. Invalid configuration fails before listening. Startup URL classification canonicalizes IP literals, including expanded IPv6 wildcard/loopback forms and IPv4-mapped loopback addresses, before deciding whether a binding is local or LAN-exposed.
 
 At startup, the task prints:
 
@@ -51,9 +51,9 @@ The server exposes only the selected report:
 - Any other path returns 404.
 - Methods other than GET and HEAD return 405 with an `Allow: GET, HEAD` header.
 
-The server does not expose directory listings, raw benchmark artifacts, arbitrary files, or other repository content. It reads the selected report for each request so an intentional in-place update is visible, while path selection remains fixed.
+The server does not expose directory listings, raw benchmark artifacts, arbitrary files, or other repository content. It reads the selected report for each request so an intentional in-place update is visible, while path selection remains fixed. Each GET/HEAD opens that fixed path with no-follow semantics where the platform supports them, verifies both the opened descriptor and current path are the same regular file, and reads through the descriptor. Replacing the selected pathname with a symlink, directory, or different entry therefore cannot expose its target.
 
-Read failures return 500 without exposing filesystem details to the client and are logged to stderr.
+Only the exact raw request targets `/` and `/?` enter report handling; all others are rejected without general URL parsing. Read/validation failures return 500 without exposing filesystem details to the client and are logged to stderr.
 
 ## Shutdown and Errors
 
@@ -91,3 +91,5 @@ This is a development/presentation convenience server, not a production server. 
 ## Approved Task 2 Shutdown Amendment
 
 Approved amendment: keep exact `corepack pnpm report:serve` / package script. For a background smoke that sends SIGTERM only to the pnpm launcher PID, accept pnpm exit 143, but Node must detect launcher/parent exit and shut itself down without an orphan. Verify foreground/process-group signal behavior separately. The prior requirement that `wait "$pid"` return 0 is superseded only for launcher-only SIGTERM.
+
+The launcher identity is captured synchronously during module initialization, before report discovery, listening, or readiness output. Shutdown monitoring is installed before readiness output and performs an immediate identity/liveness check before starting bounded polling. The portable path snapshots and monitors the immediate parent. On Linux, where the exact Corepack → pnpm → lifecycle shell → Node topology makes that parent the shell rather than the launcher, a synchronous `/proc` ancestry snapshot identifies the `pnpm report:serve` ancestor and records its process start time to prevent PID-reuse mistakes. If Linux `/proc` ancestry is unavailable, the implementation safely falls back to immediate-parent monitoring; the stronger launcher-only guarantee depends on the `/proc` snapshot when the lifecycle shell does not exit with pnpm.

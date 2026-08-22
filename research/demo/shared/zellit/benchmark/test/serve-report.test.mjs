@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
+import {spawn} from 'node:child_process'
 import {EventEmitter} from 'node:events'
-import {mkdtemp, mkdir, readFile, rm, utimes, writeFile} from 'node:fs/promises'
+import {mkdtemp, mkdir, readFile, rm, symlink, utimes, writeFile} from 'node:fs/promises'
 import http from 'node:http'
+import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
+import {fileURLToPath} from 'node:url'
 
 import {
   buildStartupLines,
@@ -163,6 +166,79 @@ test('createReportServer returns a generic 500 and logs report read failures', a
   assert.match(logged, new RegExp(escapeRegExp(reportPath)))
 })
 
+test('createReportServer never follows a replacement symlink to a local secret', async (t) => {
+  const reportsDirectory = await createTempDirectory(t)
+  const reportPath = path.join(reportsDirectory, 'fastapi-zellit-live.html')
+  const secretPath = path.join(reportsDirectory, 'secret.txt')
+  const secret = 'private-local-secret-8f440a'
+  const errors = []
+  await writeFile(reportPath, '<html><body>safe</body></html>\n', 'utf8')
+  await writeFile(secretPath, secret, 'utf8')
+
+  const {baseUrl} = await startServer(t, createReportServer(reportPath, {
+    logger: {error: (message) => errors.push(String(message))}
+  }))
+
+  await rm(reportPath)
+  await symlink(secretPath, reportPath)
+  const response = await fetch(`${baseUrl}/`)
+  const body = await response.text()
+
+  assert.equal(response.status, 500)
+  assert.equal(body, 'Internal Server Error\n')
+  assert.doesNotMatch(body, new RegExp(secret))
+  assert.equal(errors.length, 1)
+  assert.match(errors[0], new RegExp(escapeRegExp(reportPath)))
+  assert.match(errors[0], /symbolic link|ELOOP|regular file/i)
+
+  const isolatedResponse = await fetch(`${baseUrl}/raw.json`)
+  assert.equal(isolatedResponse.status, 404)
+  assert.doesNotMatch(await isolatedResponse.text(), new RegExp(secret))
+})
+
+test('createReportServer rejects a replacement directory and recovers after a regular-file restore', async (t) => {
+  const reportsDirectory = await createTempDirectory(t)
+  const reportPath = path.join(reportsDirectory, 'fastapi-zellit-live.html')
+  const restoredHtml = '<html><body>restored regular report</body></html>\n'
+  const errors = []
+  await writeFile(reportPath, '<html><body>initial</body></html>\n', 'utf8')
+
+  const {baseUrl} = await startServer(t, createReportServer(reportPath, {
+    logger: {error: (message) => errors.push(String(message))}
+  }))
+
+  await rm(reportPath)
+  await mkdir(reportPath)
+  const directoryResponse = await fetch(`${baseUrl}/`)
+  assert.equal(directoryResponse.status, 500)
+  assert.equal(await directoryResponse.text(), 'Internal Server Error\n')
+  assert.equal(errors.length, 1)
+  assert.match(errors[0], /regular file|directory|EISDIR/i)
+
+  await rm(reportPath, {recursive: true})
+  await writeFile(reportPath, restoredHtml, 'utf8')
+  const restoredResponse = await fetch(`${baseUrl}/`)
+  assert.equal(restoredResponse.status, 200)
+  assert.equal(await restoredResponse.text(), restoredHtml)
+})
+
+test('a malformed raw request target cannot stop subsequent valid requests', async (t) => {
+  const state = await startReportProcess(t, {
+    command: process.execPath,
+    args: ['scripts/serve-report.mjs']
+  })
+
+  const rawResponse = await sendRawHttpRequest(
+    state.port,
+    'GET http://[::1 HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n'
+  )
+  assert.match(rawResponse, /^HTTP\/1\.1 (?:400|404)\b/)
+
+  const operationalResponse = await fetch(`http://127.0.0.1:${state.port}/`)
+  assert.equal(operationalResponse.status, 200)
+  assert.match(await operationalResponse.text(), /<html|<!doctype html/i)
+})
+
 test('buildStartupLines lists sorted unique external IPv4 addresses for an all-interface host', () => {
   const reportPath = path.resolve('/tmp/fastapi-zellit-current.html')
   const networkInterfaces = {
@@ -200,6 +276,43 @@ test('buildStartupLines emits only a local URL for a loopback host', () => {
   assert.deepEqual(lines, [
     `Serving report: ${path.resolve('/tmp/fastapi-zellit-current.html')}`,
     'Local: http://127.0.0.1:4173/'
+  ])
+})
+
+test('buildStartupLines canonicalizes wildcard, expanded IPv6, and mapped IPv4 host forms', () => {
+  const reportPath = path.resolve('/tmp/fastapi-zellit-current.html')
+
+  assert.deepEqual(buildStartupLines({
+    reportPath,
+    host: '0:0:0:0:0:0:0:0',
+    port: 4173,
+    networkInterfaces: {}
+  }), [
+    `Serving report: ${reportPath}`,
+    'Local: http://localhost:4173/',
+    'Warning: this report is exposed to devices on your local network.'
+  ])
+
+  for (const host of [
+    '0:0:0:0:0:0:0:1',
+    '::ffff:127.0.0.1',
+    '0:0:0:0:0:ffff:7f00:1'
+  ]) {
+    assert.deepEqual(buildStartupLines({reportPath, host, port: 4173, networkInterfaces: {}}), [
+      `Serving report: ${reportPath}`,
+      `Local: http://[${host}]:4173/`
+    ])
+  }
+
+  assert.deepEqual(buildStartupLines({
+    reportPath,
+    host: '::ffff:192.168.1.40',
+    port: 4173,
+    networkInterfaces: {}
+  }), [
+    `Serving report: ${reportPath}`,
+    'LAN: http://[::ffff:192.168.1.40]:4173/',
+    'Warning: this report is exposed to devices on your local network.'
   ])
 })
 
@@ -326,9 +439,10 @@ test('installShutdownHandlers keeps both handlers until an asynchronous close fi
   assert.equal(processLike.listenerCount('SIGTERM'), 0)
 })
 
-test("installShutdownHandlers monitors its initial parent with bounded unref'd polling", () => {
+test("installShutdownHandlers monitors its captured parent with bounded unref'd polling", () => {
   for (const parentFailure of ['disappeared', 'reparented']) {
     const initialParentPid = 4321
+    const launcherIdentity = {pid: initialParentPid, directParent: true, source: 'test'}
     const processLike = createFakeProcess()
     processLike.ppid = initialParentPid
     let parentAlive = true
@@ -350,8 +464,9 @@ test("installShutdownHandlers monitors its initial parent with bounded unref'd p
     }
 
     installShutdownHandlers(server, processLike, {
-      isProcessAlive(pid) {
-        assert.equal(pid, initialParentPid)
+      launcherIdentity,
+      isProcessAlive(identity) {
+        assert.deepEqual(identity, launcherIdentity)
         return parentAlive
       },
       setInterval(callback, interval) {
@@ -368,8 +483,6 @@ test("installShutdownHandlers monitors its initial parent with bounded unref'd p
     assert.equal(typeof poll, 'function')
     assert.ok(pollInterval > 0 && pollInterval <= 1000)
     assert.equal(unrefCalls, 1)
-
-    poll()
     assert.equal(closeCalls, 0)
 
     if (parentFailure === 'disappeared') parentAlive = false
@@ -382,6 +495,106 @@ test("installShutdownHandlers monitors its initial parent with bounded unref'd p
     assert.equal(processLike.listenerCount('SIGINT'), 0)
     assert.equal(processLike.listenerCount('SIGTERM'), 0)
   }
+})
+
+test('installShutdownHandlers checks a captured launcher before scheduling its monitor', () => {
+  const launcherIdentity = {pid: 8765, startTime: '100', directParent: false, source: 'test'}
+  const processLike = createFakeProcess()
+  processLike.ppid = 4321
+  let closeCalls = 0
+  let intervalCalls = 0
+  const server = {
+    close(callback) {
+      closeCalls += 1
+      callback()
+    }
+  }
+
+  installShutdownHandlers(server, processLike, {
+    launcherIdentity,
+    isProcessAlive(identity) {
+      assert.deepEqual(identity, launcherIdentity)
+      return false
+    },
+    setInterval() {
+      intervalCalls += 1
+      return {unref() {}}
+    }
+  })
+
+  assert.equal(closeCalls, 1)
+  assert.equal(intervalCalls, 0)
+  assert.deepEqual(processLike.exits, [0])
+  assert.equal(processLike.listenerCount('SIGINT'), 0)
+  assert.equal(processLike.listenerCount('SIGTERM'), 0)
+})
+
+test('the exact package launcher exits with signal status 143 without orphaning Node', {
+  skip: process.platform !== 'linux'
+}, async (t) => {
+  const state = await startReportProcess(t, {
+    command: 'corepack',
+    args: ['pnpm', 'report:serve']
+  })
+  const launcherIdentity = await readLinuxProcessIdentity(state.child.pid)
+  assert.ok(launcherIdentity)
+  assert.match(launcherIdentity.argv.join(' '), /(?:corepack|pnpm).*pnpm.*report:serve/)
+
+  const serverIdentity = await waitForCondition(
+    'the package task to start its Node report server descendant',
+    async () => (await listLinuxDescendants(state.child.pid)).find(isReportServerNode)
+  )
+  state.knownProcesses.set(serverIdentity.pid, serverIdentity)
+  const lifecycleShellIdentity = await readLinuxProcessIdentity(serverIdentity.ppid)
+  assert.ok(lifecycleShellIdentity)
+  assert.equal(lifecycleShellIdentity.ppid, state.child.pid)
+  assert.match(path.basename(lifecycleShellIdentity.argv[0]), /^(?:ba|da|z)?sh$/)
+  assert.equal(await isPortOpen(state.port), true)
+
+  assert.equal(state.child.kill('SIGTERM'), true)
+  const launcherExit = await waitForCondition(
+    'the package launcher to exit after SIGTERM',
+    () => state.exitResult
+  )
+  assert.deepEqual(launcherExit, {code: null, signal: 'SIGTERM'})
+  assert.equal(128 + os.constants.signals[launcherExit.signal], 143)
+
+  await waitForCondition(
+    'the Node report server to exit after only its launcher was killed',
+    async () => !(await isLinuxProcessIdentityAlive(serverIdentity))
+  )
+  await waitForCondition(
+    'the package-launched report listener to close',
+    async () => !(await isPortOpen(state.port))
+  )
+})
+
+test('a direct Node process shuts down cleanly on a process-group SIGTERM', {
+  skip: process.platform === 'win32'
+}, async (t) => {
+  const state = await startReportProcess(t, {
+    command: process.execPath,
+    args: ['scripts/serve-report.mjs'],
+    detached: true
+  })
+  const serverIdentity = process.platform === 'linux'
+    ? await readLinuxProcessIdentity(state.child.pid)
+    : null
+  if (serverIdentity) state.knownProcesses.set(serverIdentity.pid, serverIdentity)
+
+  process.kill(-state.child.pid, 'SIGTERM')
+  const exit = await waitForCondition('the direct Node report server to exit', () => state.exitResult)
+  assert.deepEqual(exit, {code: 0, signal: null})
+  if (serverIdentity) {
+    await waitForCondition(
+      'the direct Node process to disappear',
+      async () => !(await isLinuxProcessIdentityAlive(serverIdentity))
+    )
+  }
+  await waitForCondition(
+    'the direct Node report listener to close',
+    async () => !(await isPortOpen(state.port))
+  )
 })
 
 test('package.json contains the exact report:serve task', async () => {
@@ -439,6 +652,7 @@ test('main closes a successful listener before reporting a later startup failure
     stdout: {
       write() {
         events.push('stdout')
+        assert.equal(processLike.listenerCount('SIGTERM'), 1)
         throw new Error('startup output failed')
       }
     },
@@ -484,8 +698,16 @@ test('main starts the selected report and prints its path, URL, and warning', as
   assert.equal(stderr.output, '')
   assert.notEqual(processLike.exitCode, 1)
 
+  const newerReportPath = await writeReportEntry(
+    reportsDirectory,
+    'fastapi-zellit-newer-after-start.html',
+    new Date('2026-08-22T14:10:00.000Z')
+  )
   const response = await fetch(`http://127.0.0.1:${port}/`)
   assert.equal(response.status, 200)
+  const body = await response.text()
+  assert.match(body, /fastapi-zellit-main\.html/)
+  assert.doesNotMatch(body, new RegExp(escapeRegExp(path.basename(newerReportPath))))
 })
 
 async function startServer(t, server) {
@@ -514,6 +736,224 @@ async function findAvailablePort() {
   const {port} = server.address()
   await closeServer(server)
   return port
+}
+
+async function startReportProcess(t, {command, args, detached = false}) {
+  const port = await findAvailablePort()
+  const child = spawn(command, args, {
+    cwd: fileURLToPath(new URL('../', import.meta.url)),
+    detached,
+    env: {
+      ...process.env,
+      REPORT_HOST: '127.0.0.1',
+      REPORT_PORT: String(port)
+    },
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
+  const state = {
+    child,
+    detached,
+    port,
+    stdout: '',
+    stderr: '',
+    exitResult: null,
+    spawnError: null,
+    knownProcesses: new Map()
+  }
+  child.stdout.setEncoding('utf8')
+  child.stderr.setEncoding('utf8')
+  child.stdout.on('data', (chunk) => {
+    state.stdout += chunk
+  })
+  child.stderr.on('data', (chunk) => {
+    state.stderr += chunk
+  })
+  child.once('error', (error) => {
+    state.spawnError = error
+  })
+  child.once('exit', (code, signal) => {
+    state.exitResult = {code, signal}
+  })
+  t.after(async () => {
+    await stopReportProcess(state)
+  })
+
+  await waitForCondition('the report server readiness output', () => {
+    if (state.spawnError) throw state.spawnError
+    if (state.exitResult) {
+      throw new Error(
+        `Report server exited before readiness (${JSON.stringify(state.exitResult)}): ${state.stderr}`
+      )
+    }
+    return state.stdout.includes('Local:')
+  })
+  await waitForCondition('the report server listener to accept connections', () => isPortOpen(port))
+  if (process.platform === 'linux') {
+    const childIdentity = await readLinuxProcessIdentity(child.pid)
+    if (childIdentity) state.knownProcesses.set(childIdentity.pid, childIdentity)
+    for (const identity of await listLinuxDescendants(child.pid)) {
+      state.knownProcesses.set(identity.pid, identity)
+    }
+  }
+  return state
+}
+
+async function stopReportProcess(state) {
+  if (process.platform === 'linux' && !state.exitResult) {
+    for (const identity of await listLinuxDescendants(state.child.pid)) {
+      state.knownProcesses.set(identity.pid, identity)
+    }
+  }
+
+  if (!state.exitResult) {
+    try {
+      if (state.detached && process.platform !== 'win32') process.kill(-state.child.pid, 'SIGTERM')
+      else state.child.kill('SIGTERM')
+    } catch (error) {
+      if (error.code !== 'ESRCH') throw error
+    }
+  }
+
+  try {
+    await waitForCondition('spawned report processes to stop during cleanup', async () => {
+      const knownAlive = await anyKnownProcessAlive(state.knownProcesses.values())
+      return state.exitResult && !knownAlive
+    }, 2000)
+  } catch {
+    for (const identity of state.knownProcesses.values()) {
+      try {
+        process.kill(identity.pid, 'SIGKILL')
+      } catch (error) {
+        if (error.code !== 'ESRCH') throw error
+      }
+    }
+    if (!state.exitResult) {
+      try {
+        state.child.kill('SIGKILL')
+      } catch (error) {
+        if (error.code !== 'ESRCH') throw error
+      }
+    }
+    await waitForCondition('forced report process cleanup', () => state.exitResult, 2000)
+  }
+
+  await waitForCondition(
+    'the report listener to close during cleanup',
+    async () => !(await isPortOpen(state.port)),
+    2000
+  )
+}
+
+async function sendRawHttpRequest(port, payload) {
+  return await new Promise((resolve, reject) => {
+    const socket = net.createConnection({host: '127.0.0.1', port})
+    let response = ''
+    socket.setEncoding('utf8')
+    socket.setTimeout(2000, () => {
+      socket.destroy(new Error('Timed out waiting for a raw HTTP response'))
+    })
+    socket.once('connect', () => socket.end(payload))
+    socket.on('data', (chunk) => {
+      response += chunk
+    })
+    socket.once('end', () => resolve(response))
+    socket.once('error', reject)
+  })
+}
+
+async function isPortOpen(port) {
+  return await new Promise((resolve) => {
+    const socket = net.createConnection({host: '127.0.0.1', port})
+    const finish = (isOpen) => {
+      socket.destroy()
+      resolve(isOpen)
+    }
+    socket.setTimeout(250, () => finish(false))
+    socket.once('connect', () => finish(true))
+    socket.once('error', () => finish(false))
+  })
+}
+
+async function waitForCondition(description, check, timeoutMs = 10000) {
+  const deadline = Date.now() + timeoutMs
+  let lastError
+  while (Date.now() < deadline) {
+    try {
+      const value = await check()
+      if (value) return value
+    } catch (error) {
+      lastError = error
+      break
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  }
+  const detail = lastError ? `: ${lastError.message}` : ''
+  throw new Error(`Timed out waiting for ${description}${detail}`)
+}
+
+async function listLinuxDescendants(rootPid) {
+  const descendants = []
+  const pending = [rootPid]
+  const seen = new Set(pending)
+  while (pending.length > 0) {
+    const pid = pending.shift()
+    let contents
+    try {
+      contents = await readFile(`/proc/${pid}/task/${pid}/children`, 'utf8')
+    } catch (error) {
+      if (error.code === 'ENOENT') continue
+      throw error
+    }
+    for (const value of contents.trim().split(/\s+/)) {
+      if (value === '') continue
+      const childPid = Number.parseInt(value, 10)
+      if (seen.has(childPid)) continue
+      seen.add(childPid)
+      const identity = await readLinuxProcessIdentity(childPid)
+      if (!identity) continue
+      descendants.push(identity)
+      pending.push(childPid)
+    }
+  }
+  return descendants
+}
+
+async function readLinuxProcessIdentity(pid) {
+  try {
+    const [statContents, commandContents] = await Promise.all([
+      readFile(`/proc/${pid}/stat`, 'utf8'),
+      readFile(`/proc/${pid}/cmdline`)
+    ])
+    const closingParenthesis = statContents.lastIndexOf(')')
+    const fields = statContents.slice(closingParenthesis + 2).trim().split(/\s+/)
+    return {
+      pid,
+      ppid: Number.parseInt(fields[1], 10),
+      startTime: fields[19],
+      argv: commandContents.toString('utf8').split('\0').filter(Boolean)
+    }
+  } catch (error) {
+    if (error.code === 'ENOENT') return null
+    throw error
+  }
+}
+
+async function isLinuxProcessIdentityAlive(identity) {
+  const current = await readLinuxProcessIdentity(identity.pid)
+  return current !== null && current.startTime === identity.startTime
+}
+
+async function anyKnownProcessAlive(identities) {
+  if (process.platform !== 'linux') return false
+  for (const identity of identities) {
+    if (await isLinuxProcessIdentityAlive(identity)) return true
+  }
+  return false
+}
+
+function isReportServerNode(identity) {
+  return path.basename(identity.argv[0] ?? '') === 'node' &&
+    identity.argv[1]?.replaceAll('\\', '/') === 'scripts/serve-report.mjs'
 }
 
 function closeServer(server) {
