@@ -23,13 +23,22 @@ function nullableNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+function optionalObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  return value
+}
+
 function sumSuccessfulCodes(counters) {
   let total = 0
+  let hasSuccessfulCode = false
   for (const [name, value] of Object.entries(counters)) {
     const match = /^http\.codes\.(2\d\d)$/.exec(name)
-    if (match && typeof value === 'number' && Number.isFinite(value)) total += value
+    if (match) {
+      hasSuccessfulCode = true
+      if (typeof value === 'number' && Number.isFinite(value)) total += value
+    }
   }
-  return total
+  return {total, hasSuccessfulCode}
 }
 
 export async function loadRun(runDirectory) {
@@ -47,18 +56,18 @@ export async function loadRun(runDirectory) {
   if (!Array.isArray(phases)) throw new Error('config.config.phases must be an array')
 
   const aggregate = requiredObject(raw.aggregate, 'raw.aggregate')
-  const counters = requiredObject(aggregate.counters, 'raw.aggregate.counters')
-  const rates = requiredObject(aggregate.rates, 'raw.aggregate.rates')
-  const summaries = requiredObject(aggregate.summaries, 'raw.aggregate.summaries')
-  const responseSummary = requiredObject(summaries['http.response_time'], 'raw.aggregate.summaries.http.response_time')
+  const counters = optionalObject(aggregate.counters)
+  const rates = optionalObject(aggregate.rates)
+  const summaries = optionalObject(aggregate.summaries)
+  const responseSummary = optionalObject(summaries?.['http.response_time'])
 
-  const requests = nullableNumber(counters['http.requests'])
-  const responses = nullableNumber(counters['http.responses'])
-  const failedVusers = nullableNumber(counters['vusers.failed'])
-  const requestRate = nullableNumber(rates['http.request_rate'])
-  const successfulResponses = sumSuccessfulCodes(counters)
-  const httpErrors = requests === null ? null : Math.max(0, requests - successfulResponses)
-  const errorRate = requests && requests > 0 && httpErrors !== null ? httpErrors / requests : null
+  const requests = nullableNumber(counters?.['http.requests'])
+  const responses = nullableNumber(counters?.['http.responses'])
+  const failedVusers = nullableNumber(counters?.['vusers.failed'])
+  const requestRate = nullableNumber(rates?.['http.request_rate'])
+  const {total: successfulResponses, hasSuccessfulCode} = counters ? sumSuccessfulCodes(counters) : {total: 0, hasSuccessfulCode: false}
+  const httpErrors = requests === null || !hasSuccessfulCode ? null : Math.max(0, requests - successfulResponses)
+  const errorRate = requests !== null && requests > 0 && httpErrors !== null ? httpErrors / requests : null
 
   return {
     runId,
@@ -81,10 +90,10 @@ export async function loadRun(runDirectory) {
       httpErrors,
       errorRate,
       requestRate,
-      p50: nullableNumber(responseSummary.p50),
-      p95: nullableNumber(responseSummary.p95),
-      p99: nullableNumber(responseSummary.p99),
-      max: nullableNumber(responseSummary.max)
+      p50: nullableNumber(responseSummary?.p50),
+      p95: nullableNumber(responseSummary?.p95),
+      p99: nullableNumber(responseSummary?.p99),
+      max: nullableNumber(responseSummary?.max)
     }
   }
 }

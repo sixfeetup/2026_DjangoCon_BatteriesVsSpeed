@@ -16,6 +16,7 @@ async function createRunFixture({
   status = 'succeeded',
   includeP99 = true,
   omit = [],
+  omitMetricGroups = [],
   mutate = () => {}
 } = {}) {
   const parentDirectory = await mkdtemp(path.join(os.tmpdir(), 'zellit-report-'))
@@ -27,24 +28,31 @@ async function createRunFixture({
       phases: [{duration: 60, arrivalRate: 5}]
     }
   }
-  const raw = {
-    aggregate: {
-      counters: {
-        'http.requests': 100,
-        'http.responses': 98,
-        'http.codes.200': 97,
-        'http.codes.500': 1,
-        'vusers.failed': 2
-      },
-      rates: {
-        'http.request_rate': 25
-      },
-      summaries: {
-        'http.response_time': includeP99
-          ? {p50: 12, p95: 30, p99: 45, max: 60}
-          : {p50: 12, p95: 30, max: 60}
-      }
+  const rawAggregate = {}
+  if (!omitMetricGroups.includes('counters')) {
+    rawAggregate.counters = {
+      'http.requests': 100,
+      'http.responses': 98,
+      'http.codes.200': 97,
+      'http.codes.500': 1,
+      'vusers.failed': 2
     }
+  }
+  if (!omitMetricGroups.includes('rates')) {
+    rawAggregate.rates = {
+      'http.request_rate': 25
+    }
+  }
+  if (!omitMetricGroups.includes('summaries')) {
+    rawAggregate.summaries = {}
+    if (!omitMetricGroups.includes('http.response_time')) {
+      rawAggregate.summaries['http.response_time'] = includeP99
+        ? {p50: 12, p95: 30, p99: 45, max: 60}
+        : {p50: 12, p95: 30, max: 60}
+    }
+  }
+  const raw = {
+    aggregate: rawAggregate
   }
   const metadata = {
     run_id: runId,
@@ -81,7 +89,14 @@ test('report data loads and normalizes benchmark artifacts', async () => {
   const run = await loadRun(runDirectory)
 
   assert.equal(run.runId, 'fastapi-zellit-baseline-20260822T120000Z')
+  assert.equal(run.artifactDirectory, runDirectory)
   assert.equal(run.profile, 'baseline')
+  assert.equal(run.gitRevision, 'abc123')
+  assert.deepEqual(run.dataset, {digest: 'digest'})
+  assert.deepEqual(run.requestCorpus, {sha256: 'sha'})
+  assert.deepEqual(run.versions, {node: 'v22.23.2'})
+  assert.equal(run.runtime.runtime_label, 'uvicorn-1')
+  assert.deepEqual(run.phases, [{duration: 60, arrivalRate: 5}])
   assert.equal(run.metrics.requests, 100)
   assert.equal(run.metrics.httpErrors, 3)
   assert.equal(run.metrics.errorRate, 0.03)
@@ -104,6 +119,34 @@ test('report data normalizes missing p99 as null', async () => {
   const run = await loadRun(runDirectory)
 
   assert.equal(run.metrics.p99, null)
+})
+
+test('report data maps missing metric groups to null', async () => {
+  const runDirectory = await createRunFixture({omitMetricGroups: ['counters', 'rates', 'summaries', 'http.response_time']})
+  const run = await loadRun(runDirectory)
+
+  assert.deepEqual(run.metrics, {
+    requests: null,
+    responses: null,
+    failedVusers: null,
+    httpErrors: null,
+    errorRate: null,
+    requestRate: null,
+    p50: null,
+    p95: null,
+    p99: null,
+    max: null
+  })
+})
+
+test('report data leaves error metrics null when 2xx counters are absent', async () => {
+  const runDirectory = await createRunFixture({mutate: ({raw}) => {
+    delete raw.aggregate.counters['http.codes.200']
+  }})
+  const run = await loadRun(runDirectory)
+
+  assert.equal(run.metrics.httpErrors, null)
+  assert.equal(run.metrics.errorRate, null)
 })
 
 test('report data rejects malformed JSON with the artifact path', async () => {
