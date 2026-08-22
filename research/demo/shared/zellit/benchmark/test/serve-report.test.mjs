@@ -1,10 +1,20 @@
 import assert from 'node:assert/strict'
-import {mkdtemp, mkdir, rm, utimes, writeFile} from 'node:fs/promises'
+import {EventEmitter} from 'node:events'
+import {mkdtemp, mkdir, readFile, rm, utimes, writeFile} from 'node:fs/promises'
+import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 
-import {createReportServer, findLatestReport, resolveServerConfig} from '../scripts/serve-report.mjs'
+import {
+  buildStartupLines,
+  createReportServer,
+  findLatestReport,
+  installShutdownHandlers,
+  listen,
+  main,
+  resolveServerConfig
+} from '../scripts/serve-report.mjs'
 
 async function createTempDirectory(t) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'zellit-serve-report-'))
@@ -153,6 +163,196 @@ test('createReportServer returns a generic 500 and logs report read failures', a
   assert.match(logged, new RegExp(escapeRegExp(reportPath)))
 })
 
+test('buildStartupLines lists sorted unique external IPv4 addresses for an all-interface host', () => {
+  const reportPath = path.resolve('/tmp/fastapi-zellit-current.html')
+  const networkInterfaces = {
+    lo: [
+      {address: '127.0.0.1', family: 'IPv4', internal: true},
+      {address: '::1', family: 'IPv6', internal: true}
+    ],
+    ethernet: [
+      {address: '192.168.1.20', family: 'IPv4', internal: false},
+      {address: 'fe80::1234', family: 'IPv6', internal: false}
+    ],
+    wifi: [
+      {address: '192.168.1.20', family: 'IPv4', internal: false},
+      {address: '10.0.0.8', family: 'IPv4', internal: false}
+    ]
+  }
+
+  assert.deepEqual(buildStartupLines({reportPath, host: '0.0.0.0', port: 4173, networkInterfaces}), [
+    `Serving report: ${reportPath}`,
+    'Local: http://localhost:4173/',
+    'LAN: http://10.0.0.8:4173/',
+    'LAN: http://192.168.1.20:4173/',
+    'Warning: this report is exposed to devices on your local network.'
+  ])
+})
+
+test('buildStartupLines emits only a local URL for a loopback host', () => {
+  const lines = buildStartupLines({
+    reportPath: '/tmp/fastapi-zellit-current.html',
+    host: '127.0.0.1',
+    port: 4173,
+    networkInterfaces: {}
+  })
+
+  assert.deepEqual(lines, [
+    `Serving report: ${path.resolve('/tmp/fastapi-zellit-current.html')}`,
+    'Local: http://127.0.0.1:4173/'
+  ])
+})
+
+test('buildStartupLines emits a warning for a configured non-loopback host and brackets IPv6', () => {
+  assert.deepEqual(buildStartupLines({
+    reportPath: '/tmp/fastapi-zellit-current.html',
+    host: '192.168.1.40',
+    port: 4173,
+    networkInterfaces: {}
+  }), [
+    `Serving report: ${path.resolve('/tmp/fastapi-zellit-current.html')}`,
+    'LAN: http://192.168.1.40:4173/',
+    'Warning: this report is exposed to devices on your local network.'
+  ])
+
+  assert.deepEqual(buildStartupLines({
+    reportPath: '/tmp/fastapi-zellit-current.html',
+    host: '2001:db8::20',
+    port: 4173,
+    networkInterfaces: {}
+  }), [
+    `Serving report: ${path.resolve('/tmp/fastapi-zellit-current.html')}`,
+    'LAN: http://[2001:db8::20]:4173/',
+    'Warning: this report is exposed to devices on your local network.'
+  ])
+})
+
+test('listen rejects listener errors and removes the opposite event handler', async (t) => {
+  const occupiedServer = http.createServer()
+  await listen(occupiedServer, {host: '127.0.0.1', port: 0})
+  t.after(() => closeServer(occupiedServer))
+  const address = occupiedServer.address()
+
+  const conflictingServer = http.createServer()
+  await assert.rejects(
+    listen(conflictingServer, {host: '127.0.0.1', port: address.port}),
+    (error) => error.code === 'EADDRINUSE'
+  )
+  assert.equal(conflictingServer.listenerCount('error'), 0)
+})
+
+test('listen removes its one-time event handlers after either settlement', async () => {
+  const expectedError = new Error('listen failed')
+  const failingServer = new EventEmitter()
+  failingServer.listen = () => failingServer.emit('error', expectedError)
+  await assert.rejects(listen(failingServer, {host: '127.0.0.1', port: 4173}), expectedError)
+  assert.equal(failingServer.listenerCount('listening'), 0)
+  assert.equal(failingServer.listenerCount('error'), 0)
+
+  const successfulServer = new EventEmitter()
+  successfulServer.listen = () => successfulServer.emit('listening')
+  await listen(successfulServer, {host: '127.0.0.1', port: 4173})
+  assert.equal(successfulServer.listenerCount('listening'), 0)
+  assert.equal(successfulServer.listenerCount('error'), 0)
+})
+
+test('installShutdownHandlers closes once, exits successfully, and removes signal handlers', () => {
+  const processLike = createFakeProcess()
+  let closeCalls = 0
+  const server = {
+    close(callback) {
+      closeCalls += 1
+      callback()
+    }
+  }
+
+  const cleanup = installShutdownHandlers(server, processLike)
+  assert.equal(processLike.listenerCount('SIGINT'), 1)
+  assert.equal(processLike.listenerCount('SIGTERM'), 1)
+
+  processLike.emit('SIGINT')
+  processLike.emit('SIGTERM')
+
+  assert.equal(closeCalls, 1)
+  assert.deepEqual(processLike.exits, [0])
+  assert.equal(processLike.listenerCount('SIGINT'), 0)
+  assert.equal(processLike.listenerCount('SIGTERM'), 0)
+  cleanup()
+})
+
+test('installShutdownHandlers reports close failures and cleanup can remove handlers', () => {
+  const processLike = createFakeProcess()
+  const server = {
+    close(callback) {
+      callback(new Error('close failed'))
+    }
+  }
+
+  const cleanup = installShutdownHandlers(server, processLike)
+  cleanup()
+  assert.equal(processLike.listenerCount('SIGINT'), 0)
+  assert.equal(processLike.listenerCount('SIGTERM'), 0)
+
+  installShutdownHandlers(server, processLike)
+  processLike.emit('SIGTERM')
+  assert.equal(processLike.stderr.output, 'Could not close report server: close failed\n')
+  assert.deepEqual(processLike.exits, [1])
+})
+
+test('package.json contains the exact report:serve task', async () => {
+  const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
+  assert.equal(packageJson.scripts['report:serve'], 'node scripts/serve-report.mjs')
+})
+
+test('main reports startup failures once and sets exitCode', async (t) => {
+  const reportsDirectory = await createTempDirectory(t)
+  const stdout = createOutput()
+  const stderr = createOutput()
+  const processLike = createFakeProcess(stderr)
+
+  const server = await main({reportsDirectory, env: {}, stdout, stderr, processLike})
+
+  assert.equal(server, null)
+  assert.equal(stdout.output, '')
+  assert.equal(
+    stderr.output,
+    `Could not start report server: No FastAPI Zellit HTML reports found in ${path.resolve(reportsDirectory)}\n`
+  )
+  assert.equal(processLike.exitCode, 1)
+})
+
+test('main starts the selected report and prints its path, URL, and warning', async (t) => {
+  const reportsDirectory = await createTempDirectory(t)
+  const reportPath = await writeReportEntry(
+    reportsDirectory,
+    'fastapi-zellit-main.html',
+    new Date('2026-08-22T14:00:00.000Z')
+  )
+  const port = await findAvailablePort()
+  const stdout = createOutput()
+  const stderr = createOutput()
+  const processLike = createFakeProcess(stderr)
+
+  const server = await main({
+    reportsDirectory,
+    env: {REPORT_HOST: '0.0.0.0', REPORT_PORT: String(port)},
+    stdout,
+    stderr,
+    processLike
+  })
+  t.after(() => closeServer(server))
+
+  assert.ok(server)
+  assert.match(stdout.output, new RegExp(`Serving report: ${escapeRegExp(path.resolve(reportPath))}`))
+  assert.match(stdout.output, new RegExp(`Local: http://localhost:${port}/`))
+  assert.match(stdout.output, /Warning: this report is exposed to devices on your local network\./)
+  assert.equal(stderr.output, '')
+  assert.notEqual(processLike.exitCode, 1)
+
+  const response = await fetch(`http://127.0.0.1:${port}/`)
+  assert.equal(response.status, 200)
+})
+
 async function startServer(t, server) {
   await new Promise((resolve, reject) => {
     server.once('error', reject)
@@ -171,6 +371,42 @@ async function startServer(t, server) {
   })
   const address = server.address()
   return {baseUrl: `http://127.0.0.1:${address.port}`}
+}
+
+async function findAvailablePort() {
+  const server = http.createServer()
+  await listen(server, {host: '127.0.0.1', port: 0})
+  const {port} = server.address()
+  await closeServer(server)
+  return port
+}
+
+function closeServer(server) {
+  return new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) reject(error)
+      else resolve()
+    })
+  })
+}
+
+function createOutput() {
+  return {
+    output: '',
+    write(value) {
+      this.output += String(value)
+    }
+  }
+}
+
+function createFakeProcess(stderr = createOutput()) {
+  const processLike = new EventEmitter()
+  processLike.stderr = stderr
+  processLike.exits = []
+  processLike.exit = (code) => {
+    processLike.exits.push(code)
+  }
+  return processLike
 }
 
 function escapeRegExp(value) {
