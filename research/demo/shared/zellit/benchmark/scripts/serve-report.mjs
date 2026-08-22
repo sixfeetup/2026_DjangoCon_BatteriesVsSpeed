@@ -17,7 +17,9 @@ export async function findLatestReport(reportsDirectory) {
 
   candidates.sort((left, right) => {
     if (right.mtimeMs !== left.mtimeMs) return right.mtimeMs - left.mtimeMs
-    return right.name.localeCompare(left.name)
+    if (left.name < right.name) return 1
+    if (left.name > right.name) return -1
+    return 0
   })
 
   if (candidates.length === 0) {

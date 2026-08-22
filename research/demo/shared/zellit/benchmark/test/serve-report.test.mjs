@@ -28,7 +28,10 @@ test('findLatestReport returns an absolute path for the newest matching HTML rep
 
   await writeReportEntry(reportsDirectory, 'fastapi-zellit-alpha.html', early)
   await writeReportEntry(reportsDirectory, 'notes.html', new Date('2026-08-22T12:20:00.000Z'))
-  await mkdir(path.join(reportsDirectory, 'fastapi-zellit-directory.html'))
+  const ignoredDirectory = path.join(reportsDirectory, 'fastapi-zellit-directory.html')
+  const ignoredDirectoryTime = new Date('2026-08-22T12:30:00.000Z')
+  await mkdir(ignoredDirectory)
+  await utimes(ignoredDirectory, ignoredDirectoryTime, ignoredDirectoryTime)
   const expected = await writeReportEntry(reportsDirectory, 'fastapi-zellit-omega.html', latest)
 
   const actual = await findLatestReport(reportsDirectory)
