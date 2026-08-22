@@ -15,6 +15,7 @@ import {
   findLatestReport,
   installShutdownHandlers,
   listen,
+  listReports,
   main,
   resolveServerConfig
 } from '../scripts/serve-report.mjs'
@@ -34,42 +35,67 @@ async function writeReportEntry(directory, name, mtime) {
   return filePath
 }
 
-test('findLatestReport returns an absolute path for the newest matching HTML report', async (t) => {
+test('report list recognizes regular Zellit HTML files and returns safe metadata in deterministic order', async (t) => {
   const reportsDirectory = await createTempDirectory(t)
-  const early = new Date('2026-08-22T12:00:00.000Z')
-  const latest = new Date('2026-08-22T12:10:00.000Z')
+  const early = new Date('2026-08-22T15:53:05.000Z')
+  const latest = new Date('2026-08-22T17:00:00.000Z')
+  const fastapiName = 'fastapi-zellit-20260822T155305Z.html'
+  const djangoName = 'django-zellit-gevent-1-20260822T170000Z.html'
 
-  await writeReportEntry(reportsDirectory, 'fastapi-zellit-alpha.html', early)
-  await writeReportEntry(reportsDirectory, 'notes.html', new Date('2026-08-22T12:20:00.000Z'))
-  const ignoredDirectory = path.join(reportsDirectory, 'fastapi-zellit-directory.html')
-  const ignoredDirectoryTime = new Date('2026-08-22T12:30:00.000Z')
-  await mkdir(ignoredDirectory)
-  await utimes(ignoredDirectory, ignoredDirectoryTime, ignoredDirectoryTime)
-  const expected = await writeReportEntry(reportsDirectory, 'fastapi-zellit-omega.html', latest)
+  const fastapiPath = await writeReportEntry(reportsDirectory, fastapiName, latest)
+  const djangoPath = await writeReportEntry(reportsDirectory, djangoName, latest)
+  await writeReportEntry(reportsDirectory, 'django-zellit-earlier.html', early)
+  await writeReportEntry(reportsDirectory, 'unrelated.html', latest)
+  await writeFile(path.join(reportsDirectory, 'raw.json'), '{"secret":true}\n', 'utf8')
+  await mkdir(path.join(reportsDirectory, 'fastapi-zellit-directory.html'))
+  await symlink(
+    fastapiPath,
+    path.join(reportsDirectory, 'django-zellit-symlink.html')
+  )
 
-  const actual = await findLatestReport(reportsDirectory)
+  const reports = await listReports(reportsDirectory)
 
-  assert.equal(actual, path.resolve(expected))
-  assert.equal(path.isAbsolute(actual), true)
+  assert.deepEqual(reports, [
+    {
+      name: fastapiName,
+      absolutePath: path.resolve(fastapiPath),
+      mtimeMs: latest.getTime(),
+      label: 'FastAPI — 20260822T155305Z'
+    },
+    {
+      name: djangoName,
+      absolutePath: path.resolve(djangoPath),
+      mtimeMs: latest.getTime(),
+      label: 'Django — gevent-1 — 20260822T170000Z'
+    },
+    {
+      name: 'django-zellit-earlier.html',
+      absolutePath: path.resolve(reportsDirectory, 'django-zellit-earlier.html'),
+      mtimeMs: early.getTime(),
+      label: 'Django — earlier'
+    }
+  ])
+  assert.ok(reports.every((report) => path.isAbsolute(report.absolutePath)))
 })
 
-test('findLatestReport breaks equal mtime ties by lexicographically greatest filename', async (t) => {
+test('report list returns an empty array for an existing empty directory', async (t) => {
   const reportsDirectory = await createTempDirectory(t)
-  const sameTime = new Date('2026-08-22T13:00:00.000Z')
 
-  await writeReportEntry(reportsDirectory, 'fastapi-zellit-alpha.html', sameTime)
+  assert.deepEqual(await listReports(reportsDirectory), [])
+})
+
+test('latest report returns the first listed path and rejects empty lists neutrally', async (t) => {
+  const reportsDirectory = await createTempDirectory(t)
+  const sameTime = new Date('2026-08-22T17:00:00.000Z')
+  await writeReportEntry(reportsDirectory, 'django-zellit-alpha.html', sameTime)
   const expected = await writeReportEntry(reportsDirectory, 'fastapi-zellit-zulu.html', sameTime)
 
-  const actual = await findLatestReport(reportsDirectory)
+  assert.equal(await findLatestReport(reportsDirectory), path.resolve(expected))
 
-  assert.equal(actual, path.resolve(expected))
-})
-
-test('findLatestReport rejects an empty reports directory with its absolute path', async (t) => {
-  const reportsDirectory = await createTempDirectory(t)
-
+  await rm(expected)
+  await rm(path.join(reportsDirectory, 'django-zellit-alpha.html'))
   await assert.rejects(findLatestReport(reportsDirectory), {
-    message: `No FastAPI Zellit HTML reports found in ${path.resolve(reportsDirectory)}`
+    message: `No Zellit HTML reports found in ${path.resolve(reportsDirectory)}`
   })
 })
 
@@ -88,100 +114,190 @@ test('resolveServerConfig rejects invalid REPORT_PORT and REPORT_HOST values', (
   assert.throws(() => resolveServerConfig({REPORT_HOST: ''}), /REPORT_HOST/)
 })
 
-test('createReportServer serves the current HTML report for GET, HEAD, and empty-query root requests', async (t) => {
+test('createReportServer renders a dynamic standalone index for GET and HEAD', async (t) => {
   const reportsDirectory = await createTempDirectory(t)
-  const reportPath = path.join(reportsDirectory, 'fastapi-zellit-live.html')
-  const initialHtml = '<!doctype html><html><body>initial</body></html>\n'
-  const updatedHtml = '<!doctype html><html><body>updated now</body></html>\n'
-  await writeFile(reportPath, initialHtml, 'utf8')
+  const fastapiName = 'fastapi-zellit-20260822T155305Z.html'
+  const djangoName = 'django-zellit-gevent-1-20260822T170000Z.html'
+  await writeReportEntry(
+    reportsDirectory,
+    fastapiName,
+    new Date('2026-08-22T15:53:05.000Z')
+  )
+  await writeReportEntry(
+    reportsDirectory,
+    djangoName,
+    new Date('2026-08-22T17:00:00.000Z')
+  )
+  await writeFile(path.join(reportsDirectory, 'private-notes.html'), 'not an index entry', 'utf8')
 
-  const {baseUrl} = await startServer(t, createReportServer(reportPath))
+  const {baseUrl} = await startServer(t, createReportServer(reportsDirectory))
 
   const getResponse = await fetch(`${baseUrl}/`)
+  const indexHtml = await getResponse.text()
   assert.equal(getResponse.status, 200)
   assert.equal(getResponse.headers.get('content-type'), 'text/html; charset=utf-8')
-  assert.equal(getResponse.headers.get('content-length'), String(Buffer.byteLength(initialHtml)))
+  assert.equal(getResponse.headers.get('content-length'), String(Buffer.byteLength(indexHtml)))
   assert.equal(getResponse.headers.get('cache-control'), 'no-store')
   assert.equal(getResponse.headers.get('x-content-type-options'), 'nosniff')
-  assert.equal(await getResponse.text(), initialHtml)
+  assert.match(indexHtml, /^<!doctype html>/i)
+  assert.match(indexHtml, /<html[ >]/i)
+  assert.match(indexHtml, /Django — gevent-1 — 20260822T170000Z/)
+  assert.match(indexHtml, /FastAPI — 20260822T155305Z/)
+  assert.match(
+    indexHtml,
+    new RegExp(`href="/reports/${escapeRegExp(encodeURIComponent(djangoName))}"`)
+  )
+  assert.match(
+    indexHtml,
+    new RegExp(`href="/reports/${escapeRegExp(encodeURIComponent(fastapiName))}"`)
+  )
+  assert.doesNotMatch(indexHtml, /private-notes|not an index entry/)
 
-  const headResponse = await fetch(`${baseUrl}/`, {method: 'HEAD'})
-  assert.equal(headResponse.status, 200)
-  assert.equal(headResponse.headers.get('content-type'), 'text/html; charset=utf-8')
-  assert.equal(headResponse.headers.get('content-length'), String(Buffer.byteLength(initialHtml)))
-  assert.equal(await headResponse.text(), '')
-
-  const emptyQueryResponse = await fetch(`${baseUrl}/?`)
-  assert.equal(emptyQueryResponse.status, 200)
-  assert.equal(await emptyQueryResponse.text(), initialHtml)
-
-  await writeFile(reportPath, updatedHtml, 'utf8')
-  const updatedResponse = await fetch(`${baseUrl}/`)
-  assert.equal(updatedResponse.status, 200)
-  assert.equal(updatedResponse.headers.get('content-length'), String(Buffer.byteLength(updatedHtml)))
-  assert.equal(await updatedResponse.text(), updatedHtml)
-})
-
-test('createReportServer rejects non-root paths, query-bearing root requests, and unsupported methods', async (t) => {
-  const reportsDirectory = await createTempDirectory(t)
-  const reportPath = path.join(reportsDirectory, 'fastapi-zellit-live.html')
-  await writeFile(reportPath, '<html><body>ok</body></html>\n', 'utf8')
-
-  const {baseUrl} = await startServer(t, createReportServer(reportPath))
-
-  const rawResponse = await fetch(`${baseUrl}/raw.json`)
-  assert.equal(rawResponse.status, 404)
-
-  const queryResponse = await fetch(`${baseUrl}/?path=other`)
-  assert.equal(queryResponse.status, 404)
-
-  const postResponse = await fetch(`${baseUrl}/`, {method: 'POST'})
-  assert.equal(postResponse.status, 405)
-  assert.equal(postResponse.headers.get('allow'), 'GET, HEAD')
-})
-
-test('createReportServer returns a generic 500 and logs report read failures', async (t) => {
-  const reportsDirectory = await createTempDirectory(t)
-  const reportPath = path.join(reportsDirectory, 'fastapi-zellit-live.html')
-  await writeFile(reportPath, '<html><body>ok</body></html>\n', 'utf8')
-  const errors = []
-  const logger = {
-    error(...args) {
-      errors.push(args)
-    }
+  for (const target of ['/', '/?']) {
+    const headResponse = await fetch(`${baseUrl}${target}`, {method: 'HEAD'})
+    assert.equal(headResponse.status, 200)
+    assert.equal(headResponse.headers.get('content-type'), getResponse.headers.get('content-type'))
+    assert.equal(headResponse.headers.get('content-length'), getResponse.headers.get('content-length'))
+    assert.equal(headResponse.headers.get('cache-control'), 'no-store')
+    assert.equal(headResponse.headers.get('x-content-type-options'), 'nosniff')
+    assert.equal(await headResponse.text(), '')
   }
 
-  const {baseUrl} = await startServer(t, createReportServer(reportPath, {logger}))
+  const newName = 'django-zellit-gevent-2-20260822T180000Z.html'
+  await writeReportEntry(reportsDirectory, newName, new Date('2026-08-22T18:00:00.000Z'))
+  const refreshedHtml = await (await fetch(`${baseUrl}/`)).text()
+  assert.match(refreshedHtml, /Django — gevent-2 — 20260822T180000Z/)
+  assert.match(refreshedHtml, new RegExp(`/reports/${escapeRegExp(encodeURIComponent(newName))}`))
+})
 
-  await rm(reportPath)
+test('createReportServer renders a useful empty index', async (t) => {
+  const reportsDirectory = await createTempDirectory(t)
+  const {baseUrl} = await startServer(t, createReportServer(reportsDirectory))
+
   const response = await fetch(`${baseUrl}/`)
   const body = await response.text()
 
-  assert.equal(response.status, 500)
-  assert.match(body, /Internal Server Error/i)
-  assert.doesNotMatch(body, new RegExp(escapeRegExp(reportPath)))
-  assert.equal(errors.length, 1)
-  const logged = errors.flat().map((value) => String(value)).join(' ')
-  assert.match(logged, /ENOENT|no such file/i)
-  assert.match(logged, new RegExp(escapeRegExp(reportPath)))
+  assert.equal(response.status, 200)
+  assert.match(body, /^<!doctype html>/i)
+  assert.match(body, /No Zellit reports are available yet/)
+  assert.doesNotMatch(body, /href="\/reports\//)
 })
 
-test('createReportServer never follows a replacement symlink to a local secret', async (t) => {
+test('createReportServer serves exact report bytes for GET and headers only for HEAD', async (t) => {
   const reportsDirectory = await createTempDirectory(t)
-  const reportPath = path.join(reportsDirectory, 'fastapi-zellit-live.html')
-  const secretPath = path.join(reportsDirectory, 'secret.txt')
-  const secret = 'private-local-secret-8f440a'
-  const errors = []
-  await writeFile(reportPath, '<html><body>safe</body></html>\n', 'utf8')
-  await writeFile(secretPath, secret, 'utf8')
+  const reportName = 'fastapi-zellit-byte_test-20260822T155305Z.html'
+  const reportBytes = Buffer.from([0x3c, 0x68, 0x31, 0x3e, 0xc3, 0xa9, 0x3c, 0x2f, 0x68, 0x31, 0x3e, 0x0a])
+  await writeFile(path.join(reportsDirectory, reportName), reportBytes)
+  const {baseUrl} = await startServer(t, createReportServer(reportsDirectory))
+  const reportUrl = `${baseUrl}/reports/${encodeURIComponent(reportName)}`
 
-  const {baseUrl} = await startServer(t, createReportServer(reportPath, {
+  const getResponse = await fetch(reportUrl)
+  const actualBytes = Buffer.from(await getResponse.arrayBuffer())
+  assert.equal(getResponse.status, 200)
+  assert.equal(getResponse.headers.get('content-type'), 'text/html; charset=utf-8')
+  assert.equal(getResponse.headers.get('content-length'), String(reportBytes.byteLength))
+  assert.equal(getResponse.headers.get('cache-control'), 'no-store')
+  assert.equal(getResponse.headers.get('x-content-type-options'), 'nosniff')
+  assert.deepEqual(actualBytes, reportBytes)
+
+  const headResponse = await fetch(reportUrl, {method: 'HEAD'})
+  assert.equal(headResponse.status, 200)
+  assert.equal(headResponse.headers.get('content-type'), getResponse.headers.get('content-type'))
+  assert.equal(headResponse.headers.get('content-length'), getResponse.headers.get('content-length'))
+  assert.equal(headResponse.headers.get('cache-control'), 'no-store')
+  assert.equal(headResponse.headers.get('x-content-type-options'), 'nosniff')
+  assert.equal(await headResponse.text(), '')
+})
+
+test('createReportServer isolates unrecognized, missing, directory, and symlink resources', async (t) => {
+  const reportsDirectory = await createTempDirectory(t)
+  const secret = 'private-local-secret-8f440a'
+  const missingName = 'fastapi-zellit-missing.html'
+  const directoryName = 'django-zellit-directory.html'
+  const symlinkName = 'fastapi-zellit-linked.html'
+  const secretPath = path.join(reportsDirectory, 'raw.json')
+  await writeFile(path.join(reportsDirectory, 'unrelated.html'), secret, 'utf8')
+  await writeFile(secretPath, secret, 'utf8')
+  await mkdir(path.join(reportsDirectory, directoryName))
+  await symlink(secretPath, path.join(reportsDirectory, symlinkName))
+  const errors = []
+  const {baseUrl} = await startServer(t, createReportServer(reportsDirectory, {
     logger: {error: (message) => errors.push(String(message))}
   }))
 
+  const cases = [
+    ['/reports/unrelated.html', 404],
+    ['/reports/raw.json', 404],
+    [`/reports/${missingName}`, 500],
+    [`/reports/${directoryName}`, 500],
+    [`/reports/${symlinkName}`, 500]
+  ]
+  for (const [target, expectedStatus] of cases) {
+    const response = await fetch(`${baseUrl}${target}`)
+    const body = await response.text()
+    assert.equal(response.status, expectedStatus, target)
+    assert.doesNotMatch(body, new RegExp(secret), target)
+    assert.doesNotMatch(body, new RegExp(escapeRegExp(secretPath)), target)
+  }
+  assert.equal(errors.length, 3)
+  assert.ok(errors.every((message) => message.includes(reportsDirectory)))
+})
+
+test('createReportServer rejects escape targets, queries, fragments, and unsupported methods', async (t) => {
+  const reportsDirectory = await createTempDirectory(t)
+  const reportName = 'fastapi-zellit-safe.html'
+  const secret = 'route-escape-secret-1e7b1d'
+  await writeFile(path.join(reportsDirectory, reportName), '<html>safe report</html>\n', 'utf8')
+  await writeFile(path.join(reportsDirectory, 'secret.txt'), secret, 'utf8')
+  const {baseUrl, port} = await startServer(t, createReportServer(reportsDirectory))
+
+  const invalidTargets = [
+    '/reports/../secret.txt',
+    '/reports/%2e%2e',
+    '/reports/%2fsecret.txt',
+    '/reports/%5csecret.txt',
+    '/reports/%',
+    `/reports/${reportName}/extra`,
+    `/reports/${reportName}?other=true`,
+    `/reports/${reportName}#fragment`,
+    '/?other=true'
+  ]
+  for (const target of invalidTargets) {
+    const rawResponse = await sendRawHttpRequest(
+      port,
+      `GET ${target} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n`
+    )
+    assert.match(rawResponse, /^HTTP\/1\.1 (?:400|404)\b/, target)
+    assert.doesNotMatch(rawResponse, new RegExp(secret), target)
+    assert.doesNotMatch(rawResponse, /safe report/, target)
+  }
+
+  for (const target of ['/', `/reports/${reportName}`]) {
+    const response = await fetch(`${baseUrl}${target}`, {method: 'POST'})
+    assert.equal(response.status, 405)
+    assert.equal(response.headers.get('allow'), 'GET, HEAD')
+  }
+})
+
+test('createReportServer never follows a report replaced by a symlink', async (t) => {
+  const reportsDirectory = await createTempDirectory(t)
+  const secretsDirectory = await createTempDirectory(t)
+  const reportName = 'django-zellit-gevent-1-live.html'
+  const reportPath = path.join(reportsDirectory, reportName)
+  const secretPath = path.join(secretsDirectory, 'secret.txt')
+  const secret = 'outside-directory-secret-30b72f'
+  const errors = []
+  await writeFile(reportPath, '<html>safe before replacement</html>\n', 'utf8')
+  await writeFile(secretPath, secret, 'utf8')
+  const {baseUrl} = await startServer(t, createReportServer(reportsDirectory, {
+    logger: {error: (message) => errors.push(String(message))}
+  }))
+  const reportUrl = `${baseUrl}/reports/${encodeURIComponent(reportName)}`
+  assert.equal((await fetch(reportUrl)).status, 200)
+
   await rm(reportPath)
   await symlink(secretPath, reportPath)
-  const response = await fetch(`${baseUrl}/`)
+  const response = await fetch(reportUrl)
   const body = await response.text()
 
   assert.equal(response.status, 500)
@@ -191,35 +307,11 @@ test('createReportServer never follows a replacement symlink to a local secret',
   assert.match(errors[0], new RegExp(escapeRegExp(reportPath)))
   assert.match(errors[0], /symbolic link|ELOOP|regular file/i)
 
-  const isolatedResponse = await fetch(`${baseUrl}/raw.json`)
-  assert.equal(isolatedResponse.status, 404)
-  assert.doesNotMatch(await isolatedResponse.text(), new RegExp(secret))
-})
-
-test('createReportServer rejects a replacement directory and recovers after a regular-file restore', async (t) => {
-  const reportsDirectory = await createTempDirectory(t)
-  const reportPath = path.join(reportsDirectory, 'fastapi-zellit-live.html')
-  const restoredHtml = '<html><body>restored regular report</body></html>\n'
-  const errors = []
-  await writeFile(reportPath, '<html><body>initial</body></html>\n', 'utf8')
-
-  const {baseUrl} = await startServer(t, createReportServer(reportPath, {
-    logger: {error: (message) => errors.push(String(message))}
-  }))
-
-  await rm(reportPath)
-  await mkdir(reportPath)
-  const directoryResponse = await fetch(`${baseUrl}/`)
-  assert.equal(directoryResponse.status, 500)
-  assert.equal(await directoryResponse.text(), 'Internal Server Error\n')
-  assert.equal(errors.length, 1)
-  assert.match(errors[0], /regular file|directory|EISDIR/i)
-
-  await rm(reportPath, {recursive: true})
-  await writeFile(reportPath, restoredHtml, 'utf8')
-  const restoredResponse = await fetch(`${baseUrl}/`)
-  assert.equal(restoredResponse.status, 200)
-  assert.equal(await restoredResponse.text(), restoredHtml)
+  const indexResponse = await fetch(`${baseUrl}/`)
+  const indexBody = await indexResponse.text()
+  assert.equal(indexResponse.status, 200)
+  assert.doesNotMatch(indexBody, new RegExp(secret))
+  assert.doesNotMatch(indexBody, new RegExp(escapeRegExp(reportName)))
 })
 
 test('a malformed raw request target cannot stop subsequent valid requests', async (t) => {
@@ -240,7 +332,7 @@ test('a malformed raw request target cannot stop subsequent valid requests', asy
 })
 
 test('buildStartupLines lists sorted unique external IPv4 addresses for an all-interface host', () => {
-  const reportPath = path.resolve('/tmp/fastapi-zellit-current.html')
+  const reportsDirectory = path.resolve('/tmp/zellit-reports')
   const networkInterfaces = {
     lo: [
       {address: '127.0.0.1', family: 'IPv4', internal: true},
@@ -256,8 +348,8 @@ test('buildStartupLines lists sorted unique external IPv4 addresses for an all-i
     ]
   }
 
-  assert.deepEqual(buildStartupLines({reportPath, host: '0.0.0.0', port: 4173, networkInterfaces}), [
-    `Serving report: ${reportPath}`,
+  assert.deepEqual(buildStartupLines({reportsDirectory, host: '0.0.0.0', port: 4173, networkInterfaces}), [
+    `Serving reports from: ${reportsDirectory}`,
     'Local: http://localhost:4173/',
     'LAN: http://10.0.0.8:4173/',
     'LAN: http://192.168.1.20:4173/',
@@ -267,28 +359,28 @@ test('buildStartupLines lists sorted unique external IPv4 addresses for an all-i
 
 test('buildStartupLines emits only a local URL for a loopback host', () => {
   const lines = buildStartupLines({
-    reportPath: '/tmp/fastapi-zellit-current.html',
+    reportsDirectory: '/tmp/zellit-reports',
     host: '127.0.0.1',
     port: 4173,
     networkInterfaces: {}
   })
 
   assert.deepEqual(lines, [
-    `Serving report: ${path.resolve('/tmp/fastapi-zellit-current.html')}`,
+    `Serving reports from: ${path.resolve('/tmp/zellit-reports')}`,
     'Local: http://127.0.0.1:4173/'
   ])
 })
 
 test('buildStartupLines canonicalizes wildcard, expanded IPv6, and mapped IPv4 host forms', () => {
-  const reportPath = path.resolve('/tmp/fastapi-zellit-current.html')
+  const reportsDirectory = path.resolve('/tmp/zellit-reports')
 
   assert.deepEqual(buildStartupLines({
-    reportPath,
+    reportsDirectory,
     host: '0:0:0:0:0:0:0:0',
     port: 4173,
     networkInterfaces: {}
   }), [
-    `Serving report: ${reportPath}`,
+    `Serving reports from: ${reportsDirectory}`,
     'Local: http://localhost:4173/',
     'Warning: this report is exposed to devices on your local network.'
   ])
@@ -298,19 +390,19 @@ test('buildStartupLines canonicalizes wildcard, expanded IPv6, and mapped IPv4 h
     '::ffff:127.0.0.1',
     '0:0:0:0:0:ffff:7f00:1'
   ]) {
-    assert.deepEqual(buildStartupLines({reportPath, host, port: 4173, networkInterfaces: {}}), [
-      `Serving report: ${reportPath}`,
+    assert.deepEqual(buildStartupLines({reportsDirectory, host, port: 4173, networkInterfaces: {}}), [
+      `Serving reports from: ${reportsDirectory}`,
       `Local: http://[${host}]:4173/`
     ])
   }
 
   assert.deepEqual(buildStartupLines({
-    reportPath,
+    reportsDirectory,
     host: '::ffff:192.168.1.40',
     port: 4173,
     networkInterfaces: {}
   }), [
-    `Serving report: ${reportPath}`,
+    `Serving reports from: ${reportsDirectory}`,
     'LAN: http://[::ffff:192.168.1.40]:4173/',
     'Warning: this report is exposed to devices on your local network.'
   ])
@@ -318,23 +410,23 @@ test('buildStartupLines canonicalizes wildcard, expanded IPv6, and mapped IPv4 h
 
 test('buildStartupLines emits a warning for a configured non-loopback host and brackets IPv6', () => {
   assert.deepEqual(buildStartupLines({
-    reportPath: '/tmp/fastapi-zellit-current.html',
+    reportsDirectory: '/tmp/zellit-reports',
     host: '192.168.1.40',
     port: 4173,
     networkInterfaces: {}
   }), [
-    `Serving report: ${path.resolve('/tmp/fastapi-zellit-current.html')}`,
+    `Serving reports from: ${path.resolve('/tmp/zellit-reports')}`,
     'LAN: http://192.168.1.40:4173/',
     'Warning: this report is exposed to devices on your local network.'
   ])
 
   assert.deepEqual(buildStartupLines({
-    reportPath: '/tmp/fastapi-zellit-current.html',
+    reportsDirectory: '/tmp/zellit-reports',
     host: '2001:db8::20',
     port: 4173,
     networkInterfaces: {}
   }), [
-    `Serving report: ${path.resolve('/tmp/fastapi-zellit-current.html')}`,
+    `Serving reports from: ${path.resolve('/tmp/zellit-reports')}`,
     'LAN: http://[2001:db8::20]:4173/',
     'Warning: this report is exposed to devices on your local network.'
   ])
@@ -602,30 +694,36 @@ test('package.json contains the exact report:serve task', async () => {
   assert.equal(packageJson.scripts['report:serve'], 'node scripts/serve-report.mjs')
 })
 
-test('main reports startup failures once and sets exitCode', async (t) => {
+test('main starts with an empty report directory and serves the empty index', async (t) => {
   const reportsDirectory = await createTempDirectory(t)
+  const port = await findAvailablePort()
   const stdout = createOutput()
   const stderr = createOutput()
   const processLike = createFakeProcess(stderr)
 
-  const server = await main({reportsDirectory, env: {}, stdout, stderr, processLike})
+  const server = await main({
+    reportsDirectory,
+    env: {REPORT_HOST: '127.0.0.1', REPORT_PORT: String(port)},
+    stdout,
+    stderr,
+    processLike
+  })
+  t.after(() => closeServer(server))
 
-  assert.equal(server, null)
-  assert.equal(stdout.output, '')
-  assert.equal(
-    stderr.output,
-    `Could not start report server: No FastAPI Zellit HTML reports found in ${path.resolve(reportsDirectory)}\n`
+  assert.ok(server)
+  assert.match(
+    stdout.output,
+    new RegExp(`Serving reports from: ${escapeRegExp(path.resolve(reportsDirectory))}`)
   )
-  assert.equal(processLike.exitCode, 1)
+  assert.match(stdout.output, new RegExp(`Local: http://127\\.0\\.0\\.1:${port}/`))
+  assert.equal(stderr.output, '')
+  const response = await fetch(`http://127.0.0.1:${port}/`)
+  assert.equal(response.status, 200)
+  assert.match(await response.text(), /No Zellit reports are available yet/)
 })
 
 test('main closes a successful listener before reporting a later startup failure', async (t) => {
   const reportsDirectory = await createTempDirectory(t)
-  await writeReportEntry(
-    reportsDirectory,
-    'fastapi-zellit-main.html',
-    new Date('2026-08-22T14:00:00.000Z')
-  )
   const events = []
   const stderr = {
     output: '',
@@ -658,7 +756,8 @@ test('main closes a successful listener before reporting a later startup failure
     },
     stderr,
     processLike,
-    createServer() {
+    createServer(actualReportsDirectory) {
+      assert.equal(actualReportsDirectory, path.resolve(reportsDirectory))
       return fakeServer
     }
   })
@@ -670,9 +769,9 @@ test('main closes a successful listener before reporting a later startup failure
   assert.equal(processLike.exitCode, 1)
 })
 
-test('main starts the selected report and prints its path, URL, and warning', async (t) => {
+test('main serves its report directory dynamically and prints its directory, URL, and warning', async (t) => {
   const reportsDirectory = await createTempDirectory(t)
-  const reportPath = await writeReportEntry(
+  await writeReportEntry(
     reportsDirectory,
     'fastapi-zellit-main.html',
     new Date('2026-08-22T14:00:00.000Z')
@@ -692,7 +791,10 @@ test('main starts the selected report and prints its path, URL, and warning', as
   t.after(() => closeServer(server))
 
   assert.ok(server)
-  assert.match(stdout.output, new RegExp(`Serving report: ${escapeRegExp(path.resolve(reportPath))}`))
+  assert.match(
+    stdout.output,
+    new RegExp(`Serving reports from: ${escapeRegExp(path.resolve(reportsDirectory))}`)
+  )
   assert.match(stdout.output, new RegExp(`Local: http://localhost:${port}/`))
   assert.match(stdout.output, /Warning: this report is exposed to devices on your local network\./)
   assert.equal(stderr.output, '')
@@ -707,7 +809,7 @@ test('main starts the selected report and prints its path, URL, and warning', as
   assert.equal(response.status, 200)
   const body = await response.text()
   assert.match(body, /fastapi-zellit-main\.html/)
-  assert.doesNotMatch(body, new RegExp(escapeRegExp(path.basename(newerReportPath))))
+  assert.match(body, new RegExp(escapeRegExp(path.basename(newerReportPath))))
 })
 
 async function startServer(t, server) {
@@ -727,7 +829,7 @@ async function startServer(t, server) {
     })
   })
   const address = server.address()
-  return {baseUrl: `http://127.0.0.1:${address.port}`}
+  return {baseUrl: `http://127.0.0.1:${address.port}`, port: address.port}
 }
 
 async function findAvailablePort() {

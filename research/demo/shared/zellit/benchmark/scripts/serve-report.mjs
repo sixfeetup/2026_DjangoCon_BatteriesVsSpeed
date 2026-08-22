@@ -6,34 +6,51 @@ import os from 'node:os'
 import path from 'node:path'
 import {fileURLToPath, pathToFileURL} from 'node:url'
 
-const reportPattern = /^fastapi-zellit-.*\.html$/
+const reportPattern = /^(fastapi|django)-zellit-[A-Za-z0-9][A-Za-z0-9_.-]*\.html$/
 const parentPollIntervalMs = 250
 const startupLauncherIdentity = captureLauncherIdentity()
 
-export async function findLatestReport(reportsDirectory) {
+export async function listReports(reportsDirectory) {
   const resolvedDirectory = path.resolve(reportsDirectory)
-  const entries = await readdir(resolvedDirectory, {withFileTypes: true})
-  const candidates = (await Promise.all(entries
-    .filter((entry) => entry.isFile() && reportPattern.test(entry.name))
-    .map(async (entry) => {
-      const absolutePath = path.resolve(resolvedDirectory, entry.name)
+  const names = await readdir(resolvedDirectory)
+  const reports = (await Promise.all(names
+    .filter((name) => reportPattern.test(name))
+    .map(async (name) => {
+      const absolutePath = path.resolve(resolvedDirectory, name)
       const details = await lstat(absolutePath)
       if (!details.isFile()) return null
-      return {absolutePath, name: entry.name, mtimeMs: details.mtimeMs}
-    }))).filter((candidate) => candidate !== null)
+      return {
+        name,
+        absolutePath,
+        mtimeMs: details.mtimeMs,
+        label: reportLabel(name)
+      }
+    }))).filter((report) => report !== null)
 
-  candidates.sort((left, right) => {
+  reports.sort((left, right) => {
     if (right.mtimeMs !== left.mtimeMs) return right.mtimeMs - left.mtimeMs
     if (left.name < right.name) return 1
     if (left.name > right.name) return -1
     return 0
   })
+  return reports
+}
 
-  if (candidates.length === 0) {
-    throw new Error(`No FastAPI Zellit HTML reports found in ${resolvedDirectory}`)
+export async function findLatestReport(reportsDirectory) {
+  const resolvedDirectory = path.resolve(reportsDirectory)
+  const reports = await listReports(resolvedDirectory)
+  if (reports.length === 0) {
+    throw new Error(`No Zellit HTML reports found in ${resolvedDirectory}`)
   }
+  return reports[0].absolutePath
+}
 
-  return candidates[0].absolutePath
+function reportLabel(name) {
+  const [, framework, suffix] = name.match(/^(fastapi|django)-zellit-(.*)\.html$/)
+  const frameworkLabel = framework === 'fastapi' ? 'FastAPI' : 'Django'
+  const timestamp = suffix.match(/^(.*)-(\d{8}T\d{6}Z)$/)
+  if (timestamp === null) return `${frameworkLabel} — ${suffix}`
+  return `${frameworkLabel} — ${timestamp[1]} — ${timestamp[2]}`
 }
 
 export function resolveServerConfig(env = process.env) {
@@ -42,8 +59,8 @@ export function resolveServerConfig(env = process.env) {
   return {host, port}
 }
 
-export function buildStartupLines({reportPath, host, port, networkInterfaces = os.networkInterfaces()}) {
-  const lines = [`Serving report: ${path.resolve(reportPath)}`]
+export function buildStartupLines({reportsDirectory, host, port, networkInterfaces = os.networkInterfaces()}) {
+  const lines = [`Serving reports from: ${path.resolve(reportsDirectory)}`]
 
   if (isAllInterfaces(host)) {
     lines.push(`Local: http://localhost:${port}/`)
@@ -150,8 +167,8 @@ export async function main({
 
   try {
     const config = resolveServerConfig(env)
-    const reportPath = await findLatestReport(reportsDirectory)
-    server = createServer(reportPath, {
+    const resolvedDirectory = path.resolve(reportsDirectory)
+    server = createServer(resolvedDirectory, {
       logger: {
         error(message) {
           stderr.write(`${message}\n`)
@@ -162,7 +179,7 @@ export async function main({
     await listen(server, config)
     listening = true
     cleanupShutdownHandlers = installShutdownHandlers(server, processLike, {launcherIdentity})
-    for (const line of buildStartupLines({reportPath, ...config})) {
+    for (const line of buildStartupLines({reportsDirectory: resolvedDirectory, ...config})) {
       stdout.write(`${line}\n`)
     }
     return server
@@ -182,39 +199,46 @@ export async function main({
   }
 }
 
-export function createReportServer(reportPath, options = {}) {
+export function createReportServer(reportsDirectory, options = {}) {
   const logger = options.logger ?? console
-  const resolvedReportPath = path.resolve(reportPath)
+  const resolvedDirectory = path.resolve(reportsDirectory)
 
   return http.createServer(async (request, response) => {
-    const requestTarget = request.url ?? ''
-    if (!isAllowedRootRequest(requestTarget)) {
-      sendText(response, 404, 'Not Found')
-      return
-    }
-
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       response.setHeader('Allow', 'GET, HEAD')
       sendText(response, 405, 'Method Not Allowed')
       return
     }
 
+    const requestTarget = request.url ?? ''
+    if (isAllowedRootRequest(requestTarget)) {
+      try {
+        const reports = await listReports(resolvedDirectory)
+        sendHtml(response, renderReportsIndex(reports), request.method)
+      } catch (error) {
+        logger.error?.(`Failed to list reports in ${resolvedDirectory}: ${error.message}`)
+        sendText(response, 500, 'Internal Server Error')
+      }
+      return
+    }
+
+    const reportName = parseReportTarget(requestTarget)
+    if (reportName === null) {
+      sendText(response, 404, 'Not Found')
+      return
+    }
+
+    const reportPath = path.resolve(resolvedDirectory, reportName)
+    if (path.basename(reportPath) !== reportName || path.dirname(reportPath) !== resolvedDirectory) {
+      sendText(response, 404, 'Not Found')
+      return
+    }
+
     try {
-      const report = await readSelectedRegularFile(resolvedReportPath)
-      const headers = {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Content-Length': String(report.byteLength),
-        'Cache-Control': 'no-store',
-        'X-Content-Type-Options': 'nosniff'
-      }
-      response.writeHead(200, headers)
-      if (request.method === 'HEAD') {
-        response.end()
-        return
-      }
-      response.end(report)
+      const report = await readSelectedRegularFile(reportPath)
+      sendHtml(response, report, request.method)
     } catch (error) {
-      logger.error?.(`Failed to read report at ${resolvedReportPath}: ${error.message}`)
+      logger.error?.(`Failed to read report at ${reportPath}: ${error.message}`)
       sendText(response, 500, 'Internal Server Error')
     }
   })
@@ -222,6 +246,66 @@ export function createReportServer(reportPath, options = {}) {
 
 function isAllowedRootRequest(requestTarget) {
   return requestTarget === '/' || requestTarget === '/?'
+}
+
+function parseReportTarget(requestTarget) {
+  const prefix = '/reports/'
+  if (!requestTarget.startsWith(prefix)) return null
+  const encodedName = requestTarget.slice(prefix.length)
+  if (encodedName === '' || encodedName.includes('/') || encodedName.includes('?') || encodedName.includes('#')) {
+    return null
+  }
+
+  let name
+  try {
+    name = decodeURIComponent(encodedName)
+  } catch {
+    return null
+  }
+  if (
+    name === '.' ||
+    name === '..' ||
+    name.includes('/') ||
+    name.includes('\\') ||
+    name.includes('\0') ||
+    !reportPattern.test(name)
+  ) {
+    return null
+  }
+  return name
+}
+
+function renderReportsIndex(reports) {
+  const contents = reports.length === 0
+    ? '<p>No Zellit reports are available yet.</p>'
+    : `<ul>\n${reports.map((report) => {
+        const href = `/reports/${encodeURIComponent(report.name)}`
+        return `      <li><a href="${escapeHtml(href)}">${escapeHtml(report.label)}</a></li>`
+      }).join('\n')}\n    </ul>`
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zellit benchmark reports</title>
+  </head>
+  <body>
+    <main>
+      <h1>Zellit benchmark reports</h1>
+      ${contents}
+    </main>
+  </body>
+</html>
+`
+}
+
+function escapeHtml(value) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
 }
 
 async function readSelectedRegularFile(reportPath) {
@@ -244,11 +328,24 @@ async function readSelectedRegularFile(reportPath) {
   }
 }
 
+function sendHtml(response, body, method) {
+  const payload = Buffer.isBuffer(body) ? body : Buffer.from(body)
+  response.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Length': String(payload.byteLength),
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff'
+  })
+  response.end(method === 'HEAD' ? undefined : payload)
+}
+
 function sendText(response, statusCode, body) {
   const payload = `${body}\n`
   response.writeHead(statusCode, {
     'Content-Type': 'text/plain; charset=utf-8',
-    'Content-Length': String(Buffer.byteLength(payload))
+    'Content-Length': String(Buffer.byteLength(payload)),
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff'
   })
   response.end(payload)
 }
