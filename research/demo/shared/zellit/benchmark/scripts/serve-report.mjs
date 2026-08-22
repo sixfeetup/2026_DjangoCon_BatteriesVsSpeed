@@ -5,6 +5,7 @@ import path from 'node:path'
 import {fileURLToPath, pathToFileURL} from 'node:url'
 
 const reportPattern = /^fastapi-zellit-.*\.html$/
+const parentPollIntervalMs = 250
 
 export async function findLatestReport(reportsDirectory) {
   const resolvedDirectory = path.resolve(reportsDirectory)
@@ -88,14 +89,20 @@ export function listen(server, {host, port}) {
   })
 }
 
-export function installShutdownHandlers(server, processLike = process) {
+export function installShutdownHandlers(server, processLike = process, monitorOptions = {}) {
   let shuttingDown = false
+  let finished = false
+  let cleanupParentMonitor = () => {}
 
   const cleanup = () => {
     processLike.off('SIGINT', shutdown)
     processLike.off('SIGTERM', shutdown)
+    cleanupParentMonitor()
   }
   const finish = (error) => {
+    if (finished) return
+    finished = true
+    cleanup()
     if (error) {
       processLike.stderr?.write(`Could not close report server: ${error.message}\n`)
     }
@@ -106,7 +113,6 @@ export function installShutdownHandlers(server, processLike = process) {
   const shutdown = () => {
     if (shuttingDown) return
     shuttingDown = true
-    cleanup()
     try {
       server.close(finish)
     } catch (error) {
@@ -114,8 +120,14 @@ export function installShutdownHandlers(server, processLike = process) {
     }
   }
 
-  processLike.once('SIGINT', shutdown)
-  processLike.once('SIGTERM', shutdown)
+  try {
+    processLike.on('SIGINT', shutdown)
+    processLike.on('SIGTERM', shutdown)
+    cleanupParentMonitor = installParentMonitor(shutdown, processLike, monitorOptions)
+  } catch (error) {
+    cleanup()
+    throw error
+  }
   return cleanup
 }
 
@@ -124,12 +136,16 @@ export async function main({
   env = process.env,
   stdout = process.stdout,
   stderr = process.stderr,
-  processLike = process
+  processLike = process,
+  createServer = createReportServer
 } = {}) {
+  let server = null
+  let listening = false
+
   try {
     const config = resolveServerConfig(env)
     const reportPath = await findLatestReport(reportsDirectory)
-    const server = createReportServer(reportPath, {
+    server = createServer(reportPath, {
       logger: {
         error(message) {
           stderr.write(`${message}\n`)
@@ -138,13 +154,22 @@ export async function main({
     })
 
     await listen(server, config)
+    listening = true
     for (const line of buildStartupLines({reportPath, ...config})) {
       stdout.write(`${line}\n`)
     }
     installShutdownHandlers(server, processLike)
     return server
   } catch (error) {
-    stderr.write(`Could not start report server: ${error.message}\n`)
+    let startupError = error
+    if (listening) {
+      try {
+        await closeListener(server)
+      } catch (closeError) {
+        startupError = new Error(`${error.message}; could not close listener: ${closeError.message}`)
+      }
+    }
+    stderr.write(`Could not start report server: ${startupError.message}\n`)
     processLike.exitCode = 1
     return null
   }
@@ -201,6 +226,74 @@ function sendText(response, statusCode, body) {
     'Content-Length': String(Buffer.byteLength(payload))
   })
   response.end(payload)
+}
+
+function installParentMonitor(shutdown, processLike, options) {
+  const initialParentPid = processLike.ppid
+  const hasInjectableLiveness = typeof options.isProcessAlive === 'function'
+  if (
+    (!hasInjectableLiveness && processLike !== process) ||
+    !Number.isInteger(initialParentPid) ||
+    initialParentPid <= 1
+  ) {
+    return () => {}
+  }
+
+  const isProcessAlive = options.isProcessAlive ?? defaultProcessIsAlive
+  const setIntervalFn = options.setInterval ?? setInterval
+  const clearIntervalFn = options.clearInterval ?? clearInterval
+  let active = true
+  let timer
+  const stop = () => {
+    if (!active) return
+    active = false
+    if (timer !== undefined) clearIntervalFn(timer)
+  }
+  const poll = () => {
+    if (!active) return
+
+    let parentAlive = true
+    try {
+      parentAlive = isProcessAlive(initialParentPid)
+    } catch {
+      return
+    }
+    if (processLike.ppid === initialParentPid && parentAlive) return
+
+    stop()
+    shutdown()
+  }
+
+  timer = setIntervalFn(poll, parentPollIntervalMs)
+  try {
+    timer?.unref?.()
+  } catch (error) {
+    stop()
+    throw error
+  }
+  return stop
+}
+
+function defaultProcessIsAlive(pid) {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return error.code !== 'ESRCH'
+  }
+}
+
+function closeListener(server) {
+  return new Promise((resolve, reject) => {
+    try {
+      server.close((error) => {
+        if (error) reject(error)
+        else resolve()
+      })
+    } catch (error) {
+      reject(error)
+    }
+  })
 }
 
 function defaultReportsDirectory() {

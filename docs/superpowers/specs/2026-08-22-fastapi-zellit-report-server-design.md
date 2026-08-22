@@ -57,7 +57,7 @@ Read failures return 500 without exposing filesystem details to the client and a
 
 ## Shutdown and Errors
 
-Address-in-use, permission, and other listener errors are printed clearly and cause a nonzero exit. SIGINT and SIGTERM close the listener cleanly and then exit. Repeated shutdown signals may terminate immediately rather than wait indefinitely.
+Address-in-use, permission, and other listener errors are printed clearly and cause a nonzero exit. SIGINT and SIGTERM close the listener cleanly and then exit. Signal handlers remain installed while close is pending, so repeated shutdown signals are handled by the same idempotent close operation.
 
 ## Components
 
@@ -87,3 +87,7 @@ The complete existing benchmark Node test suite must continue to pass.
 ## Security Scope
 
 This is a development/presentation convenience server, not a production server. Binding to `0.0.0.0` intentionally makes the report reachable from the LAN. Serving only one selected HTML file limits accidental repository exposure, but users remain responsible for their network and firewall configuration.
+
+## Approved Task 2 Shutdown Amendment
+
+Approved amendment: keep exact `corepack pnpm report:serve` / package script. For a background smoke that sends SIGTERM only to the pnpm launcher PID, accept pnpm exit 143, but Node must detect launcher/parent exit and shut itself down without an orphan. Verify foreground/process-group signal behavior separately. The prior requirement that `wait "$pid"` return 0 is superseded only for launcher-only SIGTERM.

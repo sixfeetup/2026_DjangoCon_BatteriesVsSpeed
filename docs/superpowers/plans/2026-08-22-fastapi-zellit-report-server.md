@@ -205,3 +205,7 @@ wait "$pid"
 ```
 
 Expected: all commands exit 0 and startup log includes the selected report path plus the LAN exposure warning.
+
+## Approved Task 2 Shutdown Amendment
+
+Approved amendment: keep exact `corepack pnpm report:serve` / package script. For a background smoke that sends SIGTERM only to the pnpm launcher PID, accept pnpm exit 143, but Node must detect launcher/parent exit and shut itself down without an orphan. Verify foreground/process-group signal behavior separately. The prior requirement that `wait "$pid"` return 0 is superseded only for launcher-only SIGTERM.

@@ -299,6 +299,91 @@ test('installShutdownHandlers reports close failures and cleanup can remove hand
   assert.deepEqual(processLike.exits, [1])
 })
 
+test('installShutdownHandlers keeps both handlers until an asynchronous close finishes', () => {
+  const processLike = createFakeProcess()
+  let closeCalls = 0
+  let completeClose
+  const server = {
+    close(callback) {
+      closeCalls += 1
+      completeClose = callback
+    }
+  }
+
+  installShutdownHandlers(server, processLike)
+  processLike.emit('SIGTERM')
+  processLike.emit('SIGTERM')
+
+  assert.equal(closeCalls, 1)
+  assert.deepEqual(processLike.exits, [])
+  assert.equal(processLike.listenerCount('SIGINT'), 1)
+  assert.equal(processLike.listenerCount('SIGTERM'), 1)
+
+  completeClose()
+
+  assert.deepEqual(processLike.exits, [0])
+  assert.equal(processLike.listenerCount('SIGINT'), 0)
+  assert.equal(processLike.listenerCount('SIGTERM'), 0)
+})
+
+test("installShutdownHandlers monitors its initial parent with bounded unref'd polling", () => {
+  for (const parentFailure of ['disappeared', 'reparented']) {
+    const initialParentPid = 4321
+    const processLike = createFakeProcess()
+    processLike.ppid = initialParentPid
+    let parentAlive = true
+    let closeCalls = 0
+    let poll
+    let pollInterval
+    let unrefCalls = 0
+    let clearCalls = 0
+    const timer = {
+      unref() {
+        unrefCalls += 1
+      }
+    }
+    const server = {
+      close(callback) {
+        closeCalls += 1
+        callback()
+      }
+    }
+
+    installShutdownHandlers(server, processLike, {
+      isProcessAlive(pid) {
+        assert.equal(pid, initialParentPid)
+        return parentAlive
+      },
+      setInterval(callback, interval) {
+        poll = callback
+        pollInterval = interval
+        return timer
+      },
+      clearInterval(actualTimer) {
+        assert.equal(actualTimer, timer)
+        clearCalls += 1
+      }
+    })
+
+    assert.equal(typeof poll, 'function')
+    assert.ok(pollInterval > 0 && pollInterval <= 1000)
+    assert.equal(unrefCalls, 1)
+
+    poll()
+    assert.equal(closeCalls, 0)
+
+    if (parentFailure === 'disappeared') parentAlive = false
+    else processLike.ppid = initialParentPid + 1
+    poll()
+
+    assert.equal(closeCalls, 1)
+    assert.deepEqual(processLike.exits, [0])
+    assert.equal(clearCalls, 1)
+    assert.equal(processLike.listenerCount('SIGINT'), 0)
+    assert.equal(processLike.listenerCount('SIGTERM'), 0)
+  }
+})
+
 test('package.json contains the exact report:serve task', async () => {
   const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
   assert.equal(packageJson.scripts['report:serve'], 'node scripts/serve-report.mjs')
@@ -318,6 +403,56 @@ test('main reports startup failures once and sets exitCode', async (t) => {
     stderr.output,
     `Could not start report server: No FastAPI Zellit HTML reports found in ${path.resolve(reportsDirectory)}\n`
   )
+  assert.equal(processLike.exitCode, 1)
+})
+
+test('main closes a successful listener before reporting a later startup failure', async (t) => {
+  const reportsDirectory = await createTempDirectory(t)
+  await writeReportEntry(
+    reportsDirectory,
+    'fastapi-zellit-main.html',
+    new Date('2026-08-22T14:00:00.000Z')
+  )
+  const events = []
+  const stderr = {
+    output: '',
+    write(value) {
+      events.push('stderr')
+      this.output += String(value)
+    }
+  }
+  const processLike = createFakeProcess(stderr)
+  const fakeServer = new EventEmitter()
+  let closeCalls = 0
+  fakeServer.listen = () => {
+    fakeServer.emit('listening')
+  }
+  fakeServer.close = (callback) => {
+    events.push('close')
+    closeCalls += 1
+    callback()
+  }
+
+  const server = await main({
+    reportsDirectory,
+    env: {REPORT_HOST: 'report-server.invalid', REPORT_PORT: '4173'},
+    stdout: {
+      write() {
+        events.push('stdout')
+        throw new Error('startup output failed')
+      }
+    },
+    stderr,
+    processLike,
+    createServer() {
+      return fakeServer
+    }
+  })
+
+  assert.equal(server, null)
+  assert.equal(closeCalls, 1)
+  assert.deepEqual(events, ['stdout', 'close', 'stderr'])
+  assert.equal(stderr.output, 'Could not start report server: startup output failed\n')
   assert.equal(processLike.exitCode, 1)
 })
 
