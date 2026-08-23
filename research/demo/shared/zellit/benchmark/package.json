@@ -6,7 +6,8 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "benchmark": "bash scripts/run.sh"
+    "benchmark": "bash scripts/run.sh",
+    "report:serve": "node scripts/serve-report.mjs"
   },
   "devDependencies": {
     "artillery": "2.0.33"
