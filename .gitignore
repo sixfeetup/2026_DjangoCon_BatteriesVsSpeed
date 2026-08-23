@@ -6,5 +6,6 @@
 .research/*.tmp
 .research/corpus.lock
 .pi/
+.superpowers/
 docs/superpowers/
 __pycache__/
