@@ -108,6 +108,17 @@ test('run script arms metadata finalization before rendering', async () => {
   assert(source.indexOf('write_metadata running') < source.indexOf('render-config.mjs'))
 })
 
+test('framework Compose runners remain independently wired', async () => {
+  const fastapiRunner = await readFile(path.join(benchmarkDir, 'scripts/run-fastapi-compose.sh'), 'utf8')
+  const djangoRunner = await readFile(path.join(benchmarkDir, 'scripts/run-compose.sh'), 'utf8')
+  assert.match(fastapiRunner, /research\/demo\/fastapi\/zellit/)
+  assert.match(fastapiRunner, /implementation: 'fastapi-zellit'/)
+  assert.match(fastapiRunner, /render-fastapi-runtime\.mjs/)
+  assert.match(fastapiRunner, /http:\/\/api:8000/)
+  assert.doesNotMatch(fastapiRunner, /render-runtime\.mjs/)
+  assert.match(djangoRunner, /research\/demo\/django\/zellit/)
+})
+
 test('unsafe and existing run IDs fail without overwriting results', async () => {
   const results = await mkdtemp(path.join(os.tmpdir(), 'zellit-results-'))
   const script = path.join(benchmarkDir, 'scripts/run.sh')

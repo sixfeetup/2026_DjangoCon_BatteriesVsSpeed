@@ -137,6 +137,21 @@ ENABLE_OVERLOAD=1 RUN_ID=zellit-overload CLEANUP=1 \
   ./scripts/run-compose.sh overload gevent-1
 ```
 
+Run the isolated one-worker FastAPI stack with the same profiles, request
+corpus, processor, and result format:
+
+```sh
+RUN_ID=fastapi-zellit-smoke CLEANUP=1 \
+  ./scripts/run-fastapi-compose.sh smoke
+ENABLE_OVERLOAD=1 RUN_ID=fastapi-zellit-overload CLEANUP=1 \
+  ./scripts/run-fastapi-compose.sh overload
+```
+
+The FastAPI runner records its fixed `uvicorn-1` runtime, async SQLAlchemy and
+asyncpg versions, pool size 20, and zero overflow. It targets only the internal
+`http://api:8000` origin and publishes host port 8001 by default so a Django
+stack can remain running.
+
 For a host target, use `./scripts/run.sh <profile> <target-url>`, supply complete
 explicit `RUN_METADATA_JSON`, and supply either `RUNTIME_JSON_PATH` or
 `RUNTIME_JSON_VALUE`. These requirements prevent metadata from silently
