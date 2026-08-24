@@ -27,6 +27,9 @@ importers:
       '@fontsource/roboto-mono':
         specifier: ^5.3.0
         version: 5.3.0
+      '@slidev/parser':
+        specifier: 52.18.0
+        version: 52.18.0(@nuxt/kit@3.21.9)(@vue/compiler-sfc@3.5.40)(rolldown@1.1.5)(typescript@6.0.3)(vite@8.1.5(@types/node@22.20.1)(jiti@2.7.0)(yaml@2.9.0))
       playwright-chromium:
         specifier: ^1.62.1
         version: 1.62.1

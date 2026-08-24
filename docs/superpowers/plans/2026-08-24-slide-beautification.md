@@ -29,8 +29,8 @@
 - `slides/components/BrandLockup.vue` — equal-weight logo lockup with configurable size.
 - `slides/components/DeckFooter.vue` — recurring talk label and Slidev page number.
 - `slides/tests/branding.test.mjs` — source-level branding, offline, and migration contract tests.
-- `slides/package.json` and `slides/pnpm-lock.yaml` — test script and Playwright exporter dependency.
-- `slides/slides.md` — semantic classes and presentation markup for all 26 slides.
+- `slides/package.json` and `slides/pnpm-lock.yaml` — test script, Slidev parser, and Playwright exporter dependency.
+- `slides/slides.md` — semantic classes and presentation markup for all 30 slides.
 
 ---
 
@@ -398,20 +398,23 @@ git commit -m "feat: restyle comparison and ecosystem slides"
 
 **Interfaces:**
 - Consumes all theme classes and components from Tasks 1–3.
-- Produces the fully migrated 26-slide source deck.
+- Produces the fully migrated 30-slide source deck.
 
 - [ ] **Step 1: Add full-deck structural assertions**
 
 Append:
 
 ```js
+import { parseSync } from '@slidev/parser'
+
 test('every slide has a semantic family and branding remains framework-neutral', async () => {
   const deck = await read('slides.md')
-  const slideCount = (deck.match(/^# (?!#)/gm) ?? []).length
-  assert.equal(slideCount, 26)
+  const parsed = parseSync(deck, 'slides.md')
+  assert.equal(parsed.slides.length, 30)
   assert.ok((deck.match(/<DeckFooter/g) ?? []).length >= 18)
   assert.equal((deck.match(/result-placeholder/g) ?? []).length, 2)
   assert.equal((deck.match(/recommendation-slide/g) ?? []).length, 2)
+  assert.doesNotMatch(deck, /<h1\b/i)
   assert.doesNotMatch(deck, /sixie-(purple|indigo)[^\n]*(FastAPI|Django)/i)
   assert.doesNotMatch(deck, /revsys-(blue|navy)[^\n]*(FastAPI|Django)/i)
   assert.doesNotMatch(deck, /background:\s*https?:\/\//)
@@ -505,10 +508,10 @@ Run:
 cd slides
 rm -f /tmp/batteries-v-speed.pdf
 pnpm run export -- --output /tmp/batteries-v-speed.pdf
-pdfinfo /tmp/batteries-v-speed.pdf | rg '^Pages:\s+26$'
+pdfinfo /tmp/batteries-v-speed.pdf | rg '^Pages:\s+30$'
 ```
 
-Expected: export exits 0 and PDF reports exactly 26 pages.
+Expected: export exits 0 and PDF reports exactly 30 pages.
 
 - [ ] **Step 4: Render pages for inspection**
 
@@ -521,11 +524,11 @@ pdftoppm -png -r 96 /tmp/batteries-v-speed.pdf /tmp/batteries-v-speed-pages/slid
 find /tmp/batteries-v-speed-pages -name 'slide-*.png' | wc -l
 ```
 
-Expected: `26` PNG files.
+Expected: `30` PNG files.
 
 - [ ] **Step 5: Inspect every exported page**
 
-Review all 26 PNGs in order. Check for: clipped headings or code; footer collisions; unreadably small body text; broken or unequal logos; Mermaid label contrast; accidental dark full-slide backgrounds; inconsistent card spacing; missing click-final-state content; and company colors that imply framework ownership. Record each defect by slide number before editing.
+Review all 30 PNGs in order. Check for: clipped headings or code; footer collisions; unreadably small body text; broken or unequal logos; Mermaid label contrast; accidental dark full-slide backgrounds; inconsistent card spacing; missing click-final-state content; and company colors that imply framework ownership. Record each defect by slide number before editing.
 
 - [ ] **Step 6: Correct only observed visual defects**
 
@@ -541,11 +544,11 @@ pnpm test
 pnpm run build
 rm -f /tmp/batteries-v-speed.pdf
 pnpm run export -- --output /tmp/batteries-v-speed.pdf
-pdfinfo /tmp/batteries-v-speed.pdf | rg '^Pages:\s+26$'
+pdfinfo /tmp/batteries-v-speed.pdf | rg '^Pages:\s+30$'
 git diff --check
 ```
 
-Expected: tests PASS, build and export exit 0, PDF has 26 pages, and `git diff --check` exits 0.
+Expected: tests PASS, build and export exit 0, PDF has 30 pages, and `git diff --check` exits 0.
 
 If QA changed tracked files:
 

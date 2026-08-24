@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
+import { parseSync } from '@slidev/parser'
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
 const occurrences = (text, value) => (text.match(new RegExp(value, 'g')) ?? []).length
@@ -105,11 +106,12 @@ test('thank-you slide uses the title subtitle hierarchy', async () => {
 
 test('every slide has a semantic family and branding remains framework-neutral', async () => {
   const deck = await read('slides.md')
-  const slideCount = (deck.match(/^# (?!#)/gm) ?? []).length
-  assert.equal(slideCount, 26)
+  const parsed = parseSync(deck, 'slides.md')
+  assert.equal(parsed.slides.length, 30)
   assert.ok((deck.match(/<DeckFooter/g) ?? []).length >= 18)
   assert.equal((deck.match(/result-placeholder/g) ?? []).length, 2)
   assert.equal((deck.match(/recommendation-slide/g) ?? []).length, 2)
+  assert.doesNotMatch(deck, /<h1\b/i)
   assert.doesNotMatch(deck, /sixie-(purple|indigo)[^\n]*(FastAPI|Django)/i)
   assert.doesNotMatch(deck, /revsys-(blue|navy)[^\n]*(FastAPI|Django)/i)
   assert.doesNotMatch(deck, /background:\s*https?:\/\//)

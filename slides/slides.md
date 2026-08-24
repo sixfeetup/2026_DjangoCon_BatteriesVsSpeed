@@ -667,7 +667,7 @@ Timing: 25:30–27:00
 class: content-slide
 ---
 
-<h1>Results: Redis workload</h1>
+# Results: Redis workload
 
 <div class="result-placeholder mt-8 h-62" style="border-image: linear-gradient(90deg, var(--sixie-purple), var(--revsys-blue)) 1;">
   <div>
@@ -695,7 +695,7 @@ Timing: 27:00–29:00
 class: content-slide
 ---
 
-<h1>Results: PostgreSQL workload</h1>
+# Results: PostgreSQL workload
 
 <div class="result-placeholder mt-8 h-62" style="border-image: linear-gradient(90deg, var(--sixie-purple), var(--revsys-blue)) 1;">
   <div>
@@ -816,7 +816,7 @@ Timing: 35:00–37:00
 class: recommendation-slide
 ---
 
-<h1 class="col-span-2">Lean toward Django + Ninja when…</h1>
+# Lean toward Django + Ninja when…
 
 <section class="deck-card text-xl leading-10">
   <ul>
@@ -848,7 +848,7 @@ Timing: 37:00–38:30
 class: recommendation-slide
 ---
 
-<h1 class="col-span-2">Lean toward FastAPI when…</h1>
+# Lean toward FastAPI when…
 
 <section class="deck-card text-xl leading-10">
   <ul>

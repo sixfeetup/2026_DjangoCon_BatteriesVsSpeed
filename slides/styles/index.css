@@ -119,5 +119,5 @@
 .checklist-grid > * { padding: 0.72rem 0.85rem; border: 1px solid var(--deck-line); border-radius: 16px; background: rgba(255, 255, 255, 0.78); color: var(--deck-ink); font-weight: 600; }
 .result-placeholder { display: grid; place-items: center; min-height: 10rem; padding: 1.1rem; border: 2px dashed rgba(36, 49, 93, 0.28); border-radius: 24px; background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0 12px, rgba(157, 0, 176, 0.05) 12px 24px); color: var(--revsys-navy); font-weight: 800; text-align: center; }
 .recommendation-slide { display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 1.25rem; align-items: center; }
-.recommendation-slide h1 { font-size: 3.7rem; line-height: 0.96; }
+.recommendation-slide h1 { grid-column: 1 / -1; font-size: 3.7rem; line-height: 0.96; }
 .recommendation-slide .deck-card { min-height: 10.5rem; }
