@@ -1,0 +1,348 @@
+{
+  "units": "milliseconds",
+  "lower_is_better": true,
+  "zip": {
+    "selection": "best successful sustained run per framework",
+    "sources": {
+      "fastapi": "fastapi-zip-20260823T194420Z-sustained-1",
+      "django": "django-zip-gevent-1-20260823T194420Z-sustained-3"
+    },
+    "fastapi": {
+      "runId": "fastapi-zip-20260823T194420Z-sustained-1",
+      "metadata": {
+        "run_id": "fastapi-zip-20260823T194420Z-sustained-1",
+        "started_at": "2026-08-23T20:23:04.570Z",
+        "completed_at": "2026-08-23T20:28:10.647Z",
+        "git_revision": "5ab675fcf02a77a4514a8a03ea1f5216725939d5",
+        "target_implementation": "fastapi-zip",
+        "target": "http://api:8000",
+        "profile": "sustained",
+        "node_version": "v22.23.2",
+        "artillery_version": "2.0.33",
+        "python_version": "Python 3.14.4",
+        "application_version": "0.1.0",
+        "framework_version": "0.141.1",
+        "server_version": "0.52.1",
+        "redis_version": "Redis server v=8.2.2 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=564ac467ce94f439",
+        "effective_phases": [
+          {
+            "duration": 300,
+            "arrivalRate": 200
+          }
+        ],
+        "execution_mode": "docker"
+      },
+      "requests": 60000,
+      "successes": 60000,
+      "failures": 0,
+      "mean": 0.5,
+      "p50": 1,
+      "p95": 1,
+      "p99": 2,
+      "max": 7
+    },
+    "django": {
+      "runId": "django-zip-gevent-1-20260823T194420Z-sustained-3",
+      "metadata": {
+        "run_id": "django-zip-gevent-1-20260823T194420Z-sustained-3",
+        "started_at": "2026-08-23T20:49:31.607Z",
+        "completed_at": "2026-08-23T20:54:37.594Z",
+        "git_revision": "5ab675fcf02a77a4514a8a03ea1f5216725939d5",
+        "target_implementation": "django-zip",
+        "target": "http://api:8000",
+        "profile": "sustained",
+        "node_version": "v22.23.2",
+        "artillery_version": "2.0.33",
+        "python_version": "Python 3.14.4",
+        "application_version": "0.0.0",
+        "framework_version": "6.0.8",
+        "server_version": "26.0.0",
+        "redis_version": "Redis server v=8.2.2 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=564ac467ce94f439",
+        "effective_phases": [
+          {
+            "duration": 300,
+            "arrivalRate": 200
+          }
+        ],
+        "execution_mode": "docker"
+      },
+      "requests": 60000,
+      "successes": 60000,
+      "failures": 0,
+      "mean": 1.3,
+      "p50": 1,
+      "p95": 3,
+      "p99": 6,
+      "max": 62
+    }
+  },
+  "zellit": {
+    "selection": "arithmetic mean of two warmed ABBA trials per framework",
+    "sources": {
+      "fastapi": [
+        "fastapi-zellit-fair-r1-20260824T182812Z-300rps",
+        "fastapi-zellit-fair-r2-20260824T182812Z-300rps"
+      ],
+      "django": [
+        "django-zellit-gevent-1-fair-r1-20260824T182812Z-300rps",
+        "django-zellit-gevent-1-fair-r2-20260824T182812Z-300rps"
+      ]
+    },
+    "fastapi_runs": [
+      {
+        "runId": "fastapi-zellit-fair-r1-20260824T182812Z-300rps",
+        "metadata": {
+          "run_id": "fastapi-zellit-fair-r1-20260824T182812Z-300rps",
+          "started_at": "2026-08-24T18:29:19.506Z",
+          "completed_at": "2026-08-24T18:30:25.608Z",
+          "status": "succeeded",
+          "exit_status": 0,
+          "profile": "sustained",
+          "target": "http://proxy:8000",
+          "execution_mode": "compose",
+          "git_revision": "e88d540fb7604cf93e728466f5ab9240074388e5",
+          "alphakit_revision": "not-applicable",
+          "implementation": "fastapi-zellit",
+          "dataset": {
+            "schema_version": "1",
+            "generator_version": "1",
+            "seed": 20260813,
+            "digest": "d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862"
+          },
+          "request_corpus": {
+            "sha256": "b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1",
+            "rows": 500
+          },
+          "effective_phases": [
+            {
+              "duration": 60,
+              "arrivalRate": 300
+            }
+          ],
+          "versions": {
+            "python": "Python 3.12.12",
+            "fastapi": "0.141.1",
+            "sqlalchemy": "2.0.52",
+            "asyncpg": "0.31.0",
+            "uvicorn": "0.52.4",
+            "postgresql": "postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)",
+            "node": "v22.23.2",
+            "pnpm": "11.21.0",
+            "artillery": "2.0.33"
+          },
+          "images": {
+            "fastapi": "7a6dc50ff4c9203fc9cd6edcf6d1d2b4138889296c4c861d58217e576fc68850",
+            "data": "1e219f2f796ee5cc295e19f49488439ca2041ae03e7e3f9584003f80abdb3501",
+            "artillery": "sha256:c54f2b5369b7adb615ee68d3fce8bd3a2e40c28f4732e017e0a12a2c2e996fe3",
+            "postgresql": "12dd9870a01e7c8587eeacc68c76013a4d273eaa5c78cbe81aeeeca6ea0f8b3d"
+          },
+          "resource_limits": null,
+          "notes": "Fairness validation 20260824T182812Z trial 1: FastAPI; 4 replicas, 1 Uvicorn worker/replica, pool 20/replica (80 aggregate); 30s warm-up then measured 60s at 300 req/s; nginx proxy; clean canonical DB; ABBA series."
+        },
+        "requests": 18000,
+        "successes": 18000,
+        "failures": 0,
+        "mean": 7.1,
+        "p50": 7,
+        "p95": 10.1,
+        "p99": 16,
+        "max": 30
+      },
+      {
+        "runId": "fastapi-zellit-fair-r2-20260824T182812Z-300rps",
+        "metadata": {
+          "run_id": "fastapi-zellit-fair-r2-20260824T182812Z-300rps",
+          "started_at": "2026-08-24T18:36:27.133Z",
+          "completed_at": "2026-08-24T18:37:33.244Z",
+          "status": "succeeded",
+          "exit_status": 0,
+          "profile": "sustained",
+          "target": "http://proxy:8000",
+          "execution_mode": "compose",
+          "git_revision": "e88d540fb7604cf93e728466f5ab9240074388e5",
+          "alphakit_revision": "not-applicable",
+          "implementation": "fastapi-zellit",
+          "dataset": {
+            "schema_version": "1",
+            "generator_version": "1",
+            "seed": 20260813,
+            "digest": "d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862"
+          },
+          "request_corpus": {
+            "sha256": "b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1",
+            "rows": 500
+          },
+          "effective_phases": [
+            {
+              "duration": 60,
+              "arrivalRate": 300
+            }
+          ],
+          "versions": {
+            "python": "Python 3.12.12",
+            "fastapi": "0.141.1",
+            "sqlalchemy": "2.0.52",
+            "asyncpg": "0.31.0",
+            "uvicorn": "0.52.4",
+            "postgresql": "postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)",
+            "node": "v22.23.2",
+            "pnpm": "11.21.0",
+            "artillery": "2.0.33"
+          },
+          "images": {
+            "fastapi": "7a6dc50ff4c9203fc9cd6edcf6d1d2b4138889296c4c861d58217e576fc68850",
+            "data": "1e219f2f796ee5cc295e19f49488439ca2041ae03e7e3f9584003f80abdb3501",
+            "artillery": "sha256:c54f2b5369b7adb615ee68d3fce8bd3a2e40c28f4732e017e0a12a2c2e996fe3",
+            "postgresql": "12dd9870a01e7c8587eeacc68c76013a4d273eaa5c78cbe81aeeeca6ea0f8b3d"
+          },
+          "resource_limits": null,
+          "notes": "Fairness validation 20260824T182812Z trial 2: FastAPI; 4 replicas, 1 Uvicorn worker/replica, pool 20/replica (80 aggregate); 30s warm-up then measured 60s at 300 req/s; nginx proxy; clean canonical DB; ABBA series."
+        },
+        "requests": 18000,
+        "successes": 18000,
+        "failures": 0,
+        "mean": 7,
+        "p50": 7,
+        "p95": 10.1,
+        "p99": 13.1,
+        "max": 31
+      }
+    ],
+    "django_runs": [
+      {
+        "runId": "django-zellit-gevent-1-fair-r1-20260824T182812Z-300rps",
+        "metadata": {
+          "run_id": "django-zellit-gevent-1-fair-r1-20260824T182812Z-300rps",
+          "started_at": "2026-08-24T18:31:55.780Z",
+          "completed_at": "2026-08-24T18:33:01.909Z",
+          "status": "succeeded",
+          "exit_status": 0,
+          "profile": "sustained",
+          "target": "http://proxy:8000",
+          "execution_mode": "compose",
+          "git_revision": "e88d540fb7604cf93e728466f5ab9240074388e5",
+          "alphakit_revision": "b9ee939e0fc6765320cd22e29d6be244db30062b",
+          "implementation": "django-zellit",
+          "dataset": {
+            "schema_version": "1",
+            "generator_version": "1",
+            "seed": 20260813,
+            "digest": "d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862"
+          },
+          "request_corpus": {
+            "sha256": "b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1",
+            "rows": 500
+          },
+          "effective_phases": [
+            {
+              "duration": 60,
+              "arrivalRate": 300
+            }
+          ],
+          "versions": {
+            "python": "Python 3.12.12",
+            "django": "5.2.11",
+            "django_ninja": "1.5.3",
+            "gunicorn": "25.1.0",
+            "gevent": "25.9.1",
+            "django_db_geventpool": "4.0.8",
+            "postgresql": "postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)",
+            "node": "v22.23.2",
+            "pnpm": "11.21.0",
+            "artillery": "2.0.33"
+          },
+          "images": {
+            "django": "9be5e3ca8ac51516e32b99dab7e1f3bbe9fdd491dfcbf835fb1383b0da62db96",
+            "data": "2bb9fa6b1cb065334e10c4244f6a8c3b3303a582fcb08172f234a681a3040309",
+            "artillery": "sha256:0a3bfbf2302a5a2b0cd83266dab9aee06f28346e47f0d9c05b051e6482398cc3",
+            "postgresql": "12dd9870a01e7c8587eeacc68c76013a4d273eaa5c78cbe81aeeeca6ea0f8b3d"
+          },
+          "resource_limits": null,
+          "notes": "Fairness validation 20260824T182812Z trial 1: Django gevent-1; 4 replicas, 1 worker/replica, pool 20/replica (80 aggregate); 30s warm-up then measured 60s at 300 req/s; nginx proxy; clean canonical DB; ABBA series."
+        },
+        "requests": 18000,
+        "successes": 18000,
+        "failures": 0,
+        "mean": 14.2,
+        "p50": 15,
+        "p95": 16.9,
+        "p99": 32.8,
+        "max": 54
+      },
+      {
+        "runId": "django-zellit-gevent-1-fair-r2-20260824T182812Z-300rps",
+        "metadata": {
+          "run_id": "django-zellit-gevent-1-fair-r2-20260824T182812Z-300rps",
+          "started_at": "2026-08-24T18:34:12.666Z",
+          "completed_at": "2026-08-24T18:35:18.930Z",
+          "status": "succeeded",
+          "exit_status": 0,
+          "profile": "sustained",
+          "target": "http://proxy:8000",
+          "execution_mode": "compose",
+          "git_revision": "e88d540fb7604cf93e728466f5ab9240074388e5",
+          "alphakit_revision": "b9ee939e0fc6765320cd22e29d6be244db30062b",
+          "implementation": "django-zellit",
+          "dataset": {
+            "schema_version": "1",
+            "generator_version": "1",
+            "seed": 20260813,
+            "digest": "d631bfe327777c65a45098f536c9124c822a854480352e5f4564ce62946f3862"
+          },
+          "request_corpus": {
+            "sha256": "b2e6fa0b91ccc3e02e56855e6ec5f475c6b24d241eb165c6c3f509c09cda06e1",
+            "rows": 500
+          },
+          "effective_phases": [
+            {
+              "duration": 60,
+              "arrivalRate": 300
+            }
+          ],
+          "versions": {
+            "python": "Python 3.12.12",
+            "django": "5.2.11",
+            "django_ninja": "1.5.3",
+            "gunicorn": "25.1.0",
+            "gevent": "25.9.1",
+            "django_db_geventpool": "4.0.8",
+            "postgresql": "postgres (PostgreSQL) 18.1 (Debian 18.1-1.pgdg13+2)",
+            "node": "v22.23.2",
+            "pnpm": "11.21.0",
+            "artillery": "2.0.33"
+          },
+          "images": {
+            "django": "28766e39ba397862980a74b766cbe8f11146bd9c906acbaf816bbaeab87f3c57",
+            "data": "2bb9fa6b1cb065334e10c4244f6a8c3b3303a582fcb08172f234a681a3040309",
+            "artillery": "sha256:0a3bfbf2302a5a2b0cd83266dab9aee06f28346e47f0d9c05b051e6482398cc3",
+            "postgresql": "12dd9870a01e7c8587eeacc68c76013a4d273eaa5c78cbe81aeeeca6ea0f8b3d"
+          },
+          "resource_limits": null,
+          "notes": "Fairness validation 20260824T182812Z trial 2: Django gevent-1; 4 replicas, 1 worker/replica, pool 20/replica (80 aggregate); 30s warm-up then measured 60s at 300 req/s; nginx proxy; clean canonical DB; ABBA series."
+        },
+        "requests": 18000,
+        "successes": 18000,
+        "failures": 0,
+        "mean": 12.7,
+        "p50": 13.1,
+        "p95": 16,
+        "p99": 27.9,
+        "max": 49
+      }
+    ],
+    "fastapi": {
+      "mean": 7.05,
+      "p50": 7,
+      "p95": 10.1,
+      "p99": 14.55,
+      "max": 30.5
+    },
+    "django": {
+      "mean": 13.45,
+      "p50": 14.05,
+      "p95": 16.45,
+      "p99": 30.349999999999998,
+      "max": 51.5
+    }
+  }
+}

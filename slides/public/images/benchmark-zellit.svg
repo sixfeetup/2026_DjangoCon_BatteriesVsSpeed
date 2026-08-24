@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+<title id="title">Zellit: FastAPI leads after warm-up</title>
+<desc id="desc">2-trial average · 300 req/s · 18,000 responses/trial · zero failures Lower latency is better.</desc>
+<rect width="1600" height="900" rx="32" fill="#F8FAFC"/>
+<text x="100" y="78" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="30" font-weight="800" letter-spacing="4" fill="#475569">SCENARIO B · POSTGRESQL ZELLIT LISTINGS</text>
+<text x="100" y="158" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="62" font-weight="850" fill="#0F172A">Zellit: FastAPI leads after warm-up</text>
+<text x="100" y="210" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="29" font-weight="500" fill="#475569">2-trial average · 300 req/s · 18,000 responses/trial · zero failures</text>
+<rect x="1090" y="63" width="34" height="34" rx="8" fill="#2563EB"/>
+<text x="1140" y="90" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="29" font-weight="750" fill="#0F172A">FastAPI</text>
+<rect x="1320" y="63" width="34" height="34" rx="8" fill="#0C8A5F"/>
+<text x="1370" y="90" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="29" font-weight="750" fill="#0F172A">Django</text>
+<line x1="180" y1="700" x2="1490" y2="700" stroke="#94A3B8" stroke-width="3"/>
+<text x="152" y="711" text-anchor="end" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="650" fill="#475569">0</text>
+<line x1="180" y1="592.5" x2="1490" y2="592.5" stroke="#CBD5E1" stroke-width="2"/>
+<text x="152" y="603.5" text-anchor="end" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="650" fill="#475569">9</text>
+<line x1="180" y1="485" x2="1490" y2="485" stroke="#CBD5E1" stroke-width="2"/>
+<text x="152" y="496" text-anchor="end" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="650" fill="#475569">18</text>
+<line x1="180" y1="377.5" x2="1490" y2="377.5" stroke="#CBD5E1" stroke-width="2"/>
+<text x="152" y="388.5" text-anchor="end" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="650" fill="#475569">27</text>
+<line x1="180" y1="270" x2="1490" y2="270" stroke="#CBD5E1" stroke-width="2"/>
+<text x="152" y="281" text-anchor="end" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="650" fill="#475569">36</text>
+<text x="48" y="485" transform="rotate(-90 48 485)" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="750" fill="#475569">LATENCY (ms) · LOWER IS BETTER</text>
+<rect x="226.75" y="615.7916666666666" width="105" height="84.20833333333337" rx="14" fill="#2563EB"/>
+<text x="279.25" y="597.7916666666666" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="32" font-weight="850" fill="#0F172A">7.1</text>
+<rect x="355.75" y="539.3472222222222" width="105" height="160.65277777777783" rx="14" fill="#0C8A5F"/>
+<text x="408.25" y="521.3472222222222" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="32" font-weight="850" fill="#0F172A">13.5</text>
+<text x="343.75" y="755" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="31" font-weight="850" fill="#334155">MEAN</text>
+<rect x="554.25" y="616.3888888888889" width="105" height="83.61111111111109" rx="14" fill="#2563EB"/>
+<text x="606.75" y="598.3888888888889" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="32" font-weight="850" fill="#0F172A">7.0</text>
+<rect x="683.25" y="532.1805555555555" width="105" height="167.81944444444446" rx="14" fill="#0C8A5F"/>
+<text x="735.75" y="514.1805555555555" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="32" font-weight="850" fill="#0F172A">14.1</text>
+<text x="671.25" y="755" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="31" font-weight="850" fill="#334155">P50</text>
+<rect x="881.75" y="579.3611111111111" width="105" height="120.63888888888891" rx="14" fill="#2563EB"/>
+<text x="934.25" y="561.3611111111111" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="32" font-weight="850" fill="#0F172A">10.1</text>
+<rect x="1010.75" y="503.5138888888889" width="105" height="196.4861111111111" rx="14" fill="#0C8A5F"/>
+<text x="1063.25" y="485.5138888888889" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="32" font-weight="850" fill="#0F172A">16.5</text>
+<text x="998.75" y="755" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="31" font-weight="850" fill="#334155">P95</text>
+<rect x="1209.25" y="526.2083333333334" width="105" height="173.79166666666663" rx="14" fill="#2563EB"/>
+<text x="1261.75" y="508.20833333333337" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="32" font-weight="850" fill="#0F172A">14.6</text>
+<rect x="1338.25" y="337.48611111111114" width="105" height="362.51388888888886" rx="14" fill="#0C8A5F"/>
+<text x="1390.75" y="319.48611111111114" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="32" font-weight="850" fill="#0F172A">30.4</text>
+<text x="1326.25" y="755" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="31" font-weight="850" fill="#334155">P99</text>
+<rect x="100" y="790" width="1400" height="70" rx="18" fill="#E2E8F0"/>
+<text x="130" y="834" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="25" font-weight="650" fill="#334155">4 replicas each  ·  20 DB connections/replica  ·  30s warm-up  ·  identical JSON values</text>
+<text x="1470" y="834" text-anchor="end" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="850" fill="#0F172A">1.9× lower mean</text>
+</svg>

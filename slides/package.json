@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "slidev build",
+    "charts": "node scripts/generate-benchmark-charts.mjs",
     "dev": "slidev --open --remote --bind 0.0.0.0",
     "export": "slidev export"
   },
