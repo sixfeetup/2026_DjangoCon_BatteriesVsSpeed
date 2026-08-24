@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <smoke|baseline|staircase|sustained|overload> <gevent-1|sync-1|custom>" >&2
+  echo "Usage: $0 <smoke|baseline|staircase|sustained|overload> <gevent-1|gevent-2|sync-1|custom>" >&2
   exit 2
 }
 
@@ -36,8 +36,23 @@ trap finish EXIT
 
 # Normalize and reject invalid/custom-incomplete runtime input before touching the stack.
 node "$SCRIPT_DIR/render-runtime.mjs" "$RUNTIME_MODE" "$RUNTIME_ENV" "$RUNTIME_JSON"
+API_REPLICAS="${API_REPLICAS:-1}"
+if ! [[ "$API_REPLICAS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "API_REPLICAS must be a positive integer" >&2
+  exit 2
+fi
+node -e '
+  const fs = require("node:fs")
+  const [file, replicas] = process.argv.slice(1)
+  const runtime = JSON.parse(fs.readFileSync(file, "utf8"))
+  runtime.replicas = Number(replicas)
+  runtime.pool_size_per_worker = runtime.gevent_pool_max
+  runtime.pool_size_per_replica = runtime.gevent_pool_max * runtime.workers
+  runtime.aggregate_pool_capacity = runtime.pool_size_per_replica * runtime.replicas
+  fs.writeFileSync(file, `${JSON.stringify(runtime, null, 2)}\n`)
+' "$RUNTIME_JSON" "$API_REPLICAS"
 export RUNTIME_JSON_VALUE="$(cat "$RUNTIME_JSON")"
-export RUN_ID PROFILE ENABLE_OVERLOAD
+export RUN_ID PROFILE ENABLE_OVERLOAD API_REPLICAS
 export EXECUTION_MODE=compose
 export REQUEST_CORPUS_PATH=/data/benchmark_requests.csv
 
@@ -86,5 +101,6 @@ process.stdout.write(JSON.stringify({
 NODE
 )"
 
-# The service fixes the only measured target to the internal API origin.
-compose --profile benchmark run --rm artillery "$PROFILE" http://api:8000
+# Default to the direct API; replicated runs can supply a measured proxy target.
+TARGET_URL="${TARGET_URL:-http://api:8000}"
+compose --profile benchmark run --rm artillery "$PROFILE" "$TARGET_URL"

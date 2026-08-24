@@ -15,9 +15,9 @@ const {assertZellitResponse, prepareZellitRequest, validateZellitResponse} = req
 const benchmarkDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 const expectedProfiles = {
-  smoke: [[10, 1]], baseline: [[60, 5]],
-  staircase: [[20, 5], [45, 10], [45, 25], [45, 50], [45, 100], [45, 200]],
-  sustained: [[300, 50]], overload: [[30, 400]]
+  smoke: [[10, 1]], baseline: [[30, 100]],
+  staircase: [[30, 100], [30, 200], [30, 300]],
+  sustained: [[30, 300]], overload: [[30, 300]]
 }
 
 for (const [profile, expected] of Object.entries(expectedProfiles)) {
@@ -32,12 +32,11 @@ for (const [profile, expected] of Object.entries(expectedProfiles)) {
   })
 }
 
-test('profile overrides are validated and staircase preserves warm-up by default', async () => {
-  const config = await buildConfig('staircase', 'https://zellit.test', {STAIRCASE_RATES: '11,22,33,44,55', STAIRCASE_DURATION: '9'})
-  assert.deepEqual(config.config.phases[0], {duration: 20, arrivalRate: 5, name: 'warm-up'})
-  assert.deepEqual(config.config.phases.slice(1).map((p) => [p.duration, p.arrivalRate]), [[9,11],[9,22],[9,33],[9,44],[9,55]])
+test('profile overrides are validated and apply to every staircase phase', async () => {
+  const config = await buildConfig('staircase', 'https://zellit.test', {STAIRCASE_RATES: '120,240,360', STAIRCASE_DURATION: '20'})
+  assert.deepEqual(config.config.phases.map((p) => [p.duration, p.arrivalRate]), [[20,120],[20,240],[20,360]])
   assert.throws(() => positiveInteger('RATE', '0'), /positive integer|between/)
-  await assert.rejects(buildConfig('staircase', 'http://api:8000', {STAIRCASE_RATES: '1,2'}), /exactly 5/)
+  await assert.rejects(buildConfig('staircase', 'http://api:8000', {STAIRCASE_RATES: '1,2'}), /exactly 3/)
   await assert.rejects(buildConfig('overload', 'http://api:8000', {}), /ENABLE_OVERLOAD/)
 })
 

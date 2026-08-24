@@ -59,21 +59,24 @@ function applySimpleOverrides(profile, phases, env) {
 }
 
 function applyStaircaseOverrides(phases, env) {
+  const result = phases.map((phase) => ({...phase}))
+
+  if (env.STAIRCASE_DURATION != null && env.STAIRCASE_DURATION !== '') {
+    const duration = parsePositiveInteger('STAIRCASE_DURATION', env.STAIRCASE_DURATION)
+    for (const phase of result) phase.duration = duration
+  }
+
   if (env.STAIRCASE_RATES == null || env.STAIRCASE_RATES === '') {
-    return phases
+    return result
   }
 
   const measuredRates = env.STAIRCASE_RATES.split(',').map((value) => parsePositiveInteger('STAIRCASE_RATES', value.trim()))
-  if (measuredRates.length !== 6) {
-    throw new Error('STAIRCASE_RATES must provide exactly 6 comma-separated rates')
+  if (measuredRates.length !== result.length) {
+    throw new Error(`STAIRCASE_RATES must provide exactly ${result.length} comma-separated rates`)
   }
 
-  return phases.map((phase, index) => {
-    if (index === 0) {
-      return phase
-    }
-    return {...phase, arrivalRate: measuredRates[index - 1]}
-  })
+  measuredRates.forEach((rate, index) => { result[index].arrivalRate = rate })
+  return result
 }
 
 export async function buildConfig(profile, target, env = process.env) {
