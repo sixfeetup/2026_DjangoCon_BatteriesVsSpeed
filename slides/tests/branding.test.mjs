@@ -4,6 +4,7 @@ import { test } from 'node:test'
 import { parseSync } from '@slidev/parser'
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
+const readBytes = path => readFile(new URL(`../${path}`, import.meta.url))
 const parseDeck = async () => parseSync(await read('slides.md'), 'slides.md').slides
 const classTokens = slide => new Set(String(slide.frontmatter.class ?? '').split(/\s+/).filter(Boolean))
 const slidesWithClass = (slides, token) => slides.filter(slide => classTokens(slide).has(token))
@@ -42,13 +43,14 @@ const semanticSelectors = [
   '.no-deck-footer',
 ]
 
-test('brand assets are standalone local SVG files', async () => {
-  for (const file of ['public/brands/six-feet-up.svg', 'public/brands/revsys.svg']) {
-    const svg = await read(file)
-    assert.match(svg, /<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)
-    const withoutNamespaceDeclarations = svg.replaceAll(/xmlns(?::\w+)?="https?:\/\/[^\"]+"/g, '')
-    assert.doesNotMatch(withoutNamespaceDeclarations, /https?:\/\//)
-  }
+test('brand assets are standalone local image files', async () => {
+  const revsys = await read('public/brands/revsys.svg')
+  assert.match(revsys, /<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)
+  const withoutNamespaceDeclarations = revsys.replaceAll(/xmlns(?::\w+)?="https?:\/\/[^\"]+"/g, '')
+  assert.doesNotMatch(withoutNamespaceDeclarations, /https?:\/\//)
+
+  const sixFeetUp = await readBytes('public/brands/sixfeetup-transparent_black_notagline.png')
+  assert.deepEqual([...sixFeetUp.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10])
 })
 
 test('theme exposes approved visual tokens and semantic families', async () => {
@@ -110,7 +112,8 @@ test('cards cycle single-color purple, indigo, and blue accents', async () => {
 
 test('brand components use local assets and accessible names', async () => {
   const lockup = await read('components/BrandLockup.vue')
-  assert.match(lockup, /src="\/brands\/six-feet-up\.svg"/)
+  assert.match(lockup, /src="\/brands\/sixfeetup-transparent_black_notagline\.png"/)
+  assert.doesNotMatch(lockup, /six-feet-up\.svg/)
   assert.match(lockup, /src="\/brands\/revsys\.svg"/)
   assert.match(lockup, /alt="Six Feet Up"/)
   assert.match(lockup, /alt="REVSYS"/)
