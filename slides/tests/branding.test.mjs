@@ -15,6 +15,8 @@ const contentClassTokenCount = (slides, token) => slides.reduce((total, slide) =
   ), 0)
 }, 0)
 
+const repositoryUrl = 'https://github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed'
+
 const semanticSelectors = [
   '.deck-title',
   '.title-vs',
@@ -108,6 +110,28 @@ test('cards cycle single-color purple, indigo, and blue accents', async () => {
   assert.match(css, /\.deck-card::before\s*\{[^}]*background:\s*var\(--deck-card-accent\)/s)
   assert.match(css, /\.deck-card:nth-child\(3n\s*\+\s*2\s+of\s+\.deck-card\)\s*\{[^}]*--deck-card-accent:\s*var\(--sixie-indigo\)/s)
   assert.match(css, /\.deck-card:nth-child\(3n\s+of\s+\.deck-card\)\s*\{[^}]*--deck-card-accent:\s*var\(--revsys-blue\)/s)
+})
+
+test('repository QR component is local and accessible', async () => {
+  const component = await read('components/RepositoryQr.vue')
+  assert.match(component, /src="\/repository-qr\.svg"/)
+  assert.match(component, /alt="QR code for the Django vs\. FastAPI repository"/)
+  assert.match(component, />Slides \+ code</)
+  assert.doesNotMatch(component, /src="https?:\/\//)
+})
+
+test('repository QR appears on both title-family slides', async () => {
+  const slides = await parseDeck()
+  const titleSlides = slidesWithClass(slides, 'deck-title')
+  assert.equal(titleSlides.length, 2)
+  assert.ok(titleSlides.every(slide => /<RepositoryQr\s*\/>/.test(slide.content)))
+  assert.equal(contentClassTokenCount(slides, 'repository-qr'), 0)
+})
+
+test('repository QR styles provide a bottom-right scannable card', async () => {
+  const css = await read('styles/index.css')
+  assert.match(css, /\.repository-qr\s*\{[^}]*position:\s*absolute;[^}]*right:[^;]+;[^}]*bottom:[^;]+;/s)
+  assert.match(css, /\.repository-qr__image\s*\{[^}]*width:\s*(?:9\.375|10\.625)rem;[^}]*height:\s*(?:9\.375|10\.625)rem;/s)
 })
 
 test('brand components use local assets and accessible names', async () => {

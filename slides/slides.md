@@ -23,6 +23,8 @@ mdc: true
 <div class="deck-speakers"><strong>Calvin Hendryx-Parker</strong><span>·</span><strong>Frank Wiles</strong></div>
 <div class="deck-repo">github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed</div>
 
+<RepositoryQr />
+
 <!--
 DRAFT: Add a large QR code for the repository.
 
@@ -940,6 +942,8 @@ class: deck-title no-deck-footer
 
 <div class="deck-speakers"><strong>Calvin Hendryx-Parker</strong><span>·</span><strong>Frank Wiles</strong></div>
 <div class="deck-repo">github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed</div>
+
+<RepositoryQr />
 <!--
 DRAFT: Add the final QR code, contact details, and deployed slide URL.
 Leave approximately two minutes for the close/transition or questions depending on conference format.
