@@ -83,9 +83,12 @@ async function waitForExit(child, timeoutMs = 5_000) {
   })
 }
 
-test('staircase renders committed rates', async () => {
+test('staircase renders committed rates and durations', async () => {
   const config = await buildConfig('staircase', 'http://api:8000', {})
-  assert.deepEqual(config.config.phases.map((phase) => phase.arrivalRate), [10, 25, 50, 100, 200, 400, 800])
+  assert.deepEqual(
+    config.config.phases.map(({duration, arrivalRate}) => [duration, arrivalRate]),
+    [[30, 100], [30, 200], [30, 300]]
+  )
   assert.equal(config.scenarios[0].flow[0].get.url, '/zip-codes?q={{ q }}')
 })
 
@@ -97,11 +100,15 @@ test('environment overrides sustained rate and duration', async () => {
   assert.deepEqual(config.config.phases, [{duration: 120, arrivalRate: 350}])
 })
 
-test('staircase override replaces measured rates but retains warm-up', async () => {
+test('staircase overrides replace all rates and durations', async () => {
   const config = await buildConfig('staircase', 'http://localhost:8000', {
-    STAIRCASE_RATES: '30,60,120,240,480,960'
+    STAIRCASE_RATES: '120,240,360',
+    STAIRCASE_DURATION: '20'
   })
-  assert.deepEqual(config.config.phases.map((phase) => phase.arrivalRate), [10, 30, 60, 120, 240, 480, 960])
+  assert.deepEqual(
+    config.config.phases.map(({duration, arrivalRate}) => [duration, arrivalRate]),
+    [[20, 120], [20, 240], [20, 360]]
+  )
 })
 
 test('render config honors PREFIX_CORPUS_PATH override', async () => {

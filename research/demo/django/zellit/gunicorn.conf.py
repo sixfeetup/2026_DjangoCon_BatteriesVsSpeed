@@ -11,6 +11,9 @@ worker_tmp_dir = "/dev/shm"
 
 def post_fork(server, worker):
     if os.environ.get("GUNICORN_WORKER_CLASS") == "gevent":
-        from gevent import monkey
+        # Gunicorn's gevent worker patches the Python standard library before
+        # loading the application. psycopg2 is a C extension and requires its
+        # own wait callback so database I/O yields to other greenlets.
+        from psycogreen.gevent import patch_psycopg
 
-        monkey.patch_all()
+        patch_psycopg()

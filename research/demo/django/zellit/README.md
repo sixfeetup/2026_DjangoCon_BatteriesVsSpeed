@@ -125,6 +125,17 @@ python3 scripts/render_runtime.py gevent-1 \
 docker compose --env-file .runtime.env up -d --wait api
 ```
 
+For CPU-heavy responses, `gevent-2` runs two workers with 10 pooled database
+connections each, preserving the 20-connection total per container. Both
+gevent presets install psycogreen's wait callback so psycopg2 database I/O
+actually yields to other greenlets:
+
+```sh
+python3 scripts/render_runtime.py gevent-2 \
+  --env-file .runtime.env --json-file runtime.json
+docker compose --env-file .runtime.env up -d --no-deps --force-recreate api
+```
+
 Switch the same image and canonical database to one synchronous worker:
 
 ```sh
@@ -182,6 +193,8 @@ startup, and discover metadata from the actual containers:
 ```sh
 RUN_ID=zellit-gevent-smoke CLEANUP=0 \
   ./scripts/run-compose.sh smoke gevent-1
+RUN_ID=zellit-gevent-2-smoke CLEANUP=0 \
+  ./scripts/run-compose.sh smoke gevent-2
 RUN_ID=zellit-sync-smoke CLEANUP=0 \
   ./scripts/run-compose.sh smoke sync-1
 RUN_ID=zellit-gevent-staircase CLEANUP=0 \

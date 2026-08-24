@@ -28,7 +28,7 @@ export async function renderRuntime(mode, envFile, jsonFile, env = process.env) 
 
 async function main([mode, envFile, jsonFile]) {
   if (!mode || !envFile || !jsonFile) {
-    throw new Error('Usage: node scripts/render-runtime.mjs <gevent-1|sync-1|custom> <env-file> <json-file>')
+    throw new Error('Usage: node scripts/render-runtime.mjs <gevent-1|gevent-2|sync-1|custom> <env-file> <json-file>')
   }
   await renderRuntime(mode, envFile, jsonFile)
 }

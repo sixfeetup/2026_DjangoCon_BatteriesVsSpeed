@@ -39,16 +39,16 @@ function simpleOverrides(profile, phases, env) {
 
 function staircaseOverrides(phases, env) {
   const result = phases.map((phase) => ({...phase}))
-  if (env.WARMUP_RATE) result[0].arrivalRate = positiveInteger('WARMUP_RATE', env.WARMUP_RATE)
-  if (env.WARMUP_DURATION) result[0].duration = positiveInteger('WARMUP_DURATION', env.WARMUP_DURATION, 86_400)
   if (env.STAIRCASE_DURATION) {
     const duration = positiveInteger('STAIRCASE_DURATION', env.STAIRCASE_DURATION, 86_400)
-    for (const phase of result.slice(1)) phase.duration = duration
+    for (const phase of result) phase.duration = duration
   }
   if (env.STAIRCASE_RATES) {
     const rates = env.STAIRCASE_RATES.split(',').map((value) => positiveInteger('STAIRCASE_RATES', value.trim()))
-    if (rates.length !== 5) throw new Error('STAIRCASE_RATES must provide exactly 5 comma-separated rates')
-    rates.forEach((rate, index) => { result[index + 1].arrivalRate = rate })
+    if (rates.length !== result.length) {
+      throw new Error(`STAIRCASE_RATES must provide exactly ${result.length} comma-separated rates`)
+    }
+    rates.forEach((rate, index) => { result[index].arrivalRate = rate })
   }
   return result
 }

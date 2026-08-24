@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
@@ -10,6 +11,25 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 RENDERER = ROOT / "scripts" / "render_runtime.py"
+GUNICORN_CONFIG = ROOT / "gunicorn.conf.py"
+
+
+def test_gevent_post_fork_installs_psycopg_wait_callback(monkeypatch):
+    import psycopg2.extensions
+
+    original = psycopg2.extensions.get_wait_callback()
+    monkeypatch.setenv("GUNICORN_WORKER_CLASS", "gevent")
+    spec = importlib.util.spec_from_file_location("zellit_gunicorn", GUNICORN_CONFIG)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    try:
+        module.post_fork(None, None)
+        callback = psycopg2.extensions.get_wait_callback()
+        assert callback is not None
+        assert callback.__module__ == "psycogreen.gevent"
+    finally:
+        psycopg2.extensions.set_wait_callback(original)
 
 
 def render(tmp_path, mode, **environment):
@@ -50,6 +70,16 @@ def test_gevent_preset_normalizes_all_effective_fields(tmp_path):
         "worker_connections", "workers",
     }
     assert "DJANGO_DATABASE_MODE=geventpool" in env_file.read_text()
+
+
+def test_gevent_2_preset_preserves_twenty_connections_per_container(tmp_path):
+    result, runtime, _ = render(tmp_path, "gevent-2")
+    assert result.returncode == 0, result.stderr
+    assert runtime["runtime_label"] == "gevent-2"
+    assert runtime["worker_class"] == "gevent"
+    assert runtime["workers"] == 2
+    assert runtime["database_mode"] == "geventpool"
+    assert runtime["gevent_pool_max"] == 10
 
 
 def test_sync_preset_normalizes_standard_backend(tmp_path):

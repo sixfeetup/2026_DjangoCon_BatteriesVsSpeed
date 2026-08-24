@@ -87,7 +87,7 @@ INSTALLED_APPS += ["ak", "users", "listings.apps.ListingsConfig"]
 # Middleware
 #############################################################################
 MIDDLEWARE = [
-    "tracer.middleware.RequestID",
+    #    "tracer.middleware.RequestID",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -179,7 +179,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 #############################################################################
 
 # Use cached sessions by default
-SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_COOKIE_NAME = "config-sessionid"
 SESSION_COOKIE_SECURE = True
 

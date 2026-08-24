@@ -624,29 +624,20 @@ Timing: 24:00–25:30
 -->
 
 ---
-class: content-slide
+class: content-slide benchmark-slide
 ---
 
 # Results: Redis workload
 
-<div class="result-placeholder mt-8 h-62" style="border-image: linear-gradient(90deg, var(--sixie-purple), var(--revsys-blue)) 1;">
-  <div>
-    <div class="text-4xl opacity-50">CHART PLACEHOLDER</div>
-    <div class="mt-4 text-xl opacity-60">p50 · p95 · p99 · throughput · errors</div>
-    <div class="mt-2 opacity-50">lower and higher concurrency</div>
-  </div>
-</div>
-
-<div class="mt-6 text-center text-xl">
-Describe what happened—not what we expected to happen.
-</div>
+<img src="/images/benchmark-zip.svg" alt="ZIP workload latency chart comparing FastAPI and Django mean, p50, p95, and p99 latency" />
 
 <DeckFooter />
 <!--
-Do not invent results. Replace with a chart generated from committed benchmark artifacts.
-Include run ID and environment in a readable footer.
-
-Discuss variance and surprises. If results are effectively tied, that is a useful result.
+The chart uses the best successful five-minute sustained run for each framework, as requested:
+- FastAPI: fastapi-zip-20260823T194420Z-sustained-1
+- Django: django-zip-gevent-1-20260823T194420Z-sustained-3
+Both completed 60,000 responses at 200 requests/second with zero failures.
+Be explicit that these are best observed runs, not averages.
 
 Timing: 27:00–29:00
 -->
@@ -690,27 +681,19 @@ Timing: 25:30–27:00
 -->
 
 ---
-class: content-slide
+class: content-slide benchmark-slide
 ---
 
 # Results: PostgreSQL workload
 
-<div class="result-placeholder mt-8 h-62" style="border-image: linear-gradient(90deg, var(--sixie-purple), var(--revsys-blue)) 1;">
-  <div>
-    <div class="text-4xl opacity-50">CHART PLACEHOLDER</div>
-    <div class="mt-4 text-xl opacity-60">p50 · p95 · p99 · throughput · errors</div>
-    <div class="mt-2 opacity-50">same data, queries, and response</div>
-  </div>
-</div>
-
-<div class="mt-6 text-center text-xl">
-When the database dominates, how much framework is left to measure?
-</div>
+<img src="/images/benchmark-zellit.svg" alt="Warmed Zellit PostgreSQL workload latency chart comparing FastAPI and Django mean, p50, p95, and p99 latency" />
 
 <DeckFooter />
 <!--
-Do not invent results. Replace with a chart generated from committed benchmark artifacts.
-Discuss connection pools and server worker configuration explicitly.
+The chart averages the two measured trials per framework from warmed ABBA series 20260824T182812Z.
+Each trial used four replicas, one worker per replica, twenty DB connections per replica, a 30-second warm-up, and then 18,000 measured requests over 60 seconds. Every request succeeded.
+Parsed sample responses were exactly equal JSON values; Django's larger wire size came only from whitespace.
+Mention that unrelated background containers were present, so the ABBA order and low trial-to-trial variance matter.
 
 Timing: 29:00–31:00
 -->

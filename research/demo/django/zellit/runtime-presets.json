@@ -24,6 +24,17 @@
       "gevent_pool_max": 20,
       "keepalive": 32
     },
+    "gevent-2": {
+      "runtime_label": "gevent-2",
+      "database_mode": "geventpool",
+      "worker_class": "gevent",
+      "workers": 2,
+      "threads": 1,
+      "worker_connections": 10000,
+      "conn_max_age": 0,
+      "gevent_pool_max": 10,
+      "keepalive": 32
+    },
     "sync-1": {
       "runtime_label": "sync-1",
       "database_mode": "standard",

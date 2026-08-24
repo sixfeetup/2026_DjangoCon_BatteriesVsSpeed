@@ -11,6 +11,7 @@ gevent
 greenlet
 gunicorn
 psycopg2-binary
+psycogreen==1.0.2
 whitenoise
 django-tailwind-cli<4.2
 

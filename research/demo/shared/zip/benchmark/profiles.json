@@ -3,21 +3,17 @@
     {"duration": 10, "arrivalRate": 1}
   ],
   "baseline": [
-    {"duration": 60, "arrivalRate": 5}
+    {"duration": 30, "arrivalRate": 100}
   ],
   "staircase": [
-    {"duration": 20, "arrivalRate": 10, "name": "warm-up"},
-    {"duration": 45, "arrivalRate": 25},
-    {"duration": 45, "arrivalRate": 50},
-    {"duration": 45, "arrivalRate": 100},
-    {"duration": 45, "arrivalRate": 200},
-    {"duration": 45, "arrivalRate": 400},
-    {"duration": 45, "arrivalRate": 800}
+    {"duration": 30, "arrivalRate": 100, "name": "100 rps"},
+    {"duration": 30, "arrivalRate": 200, "name": "200 rps"},
+    {"duration": 30, "arrivalRate": 300, "name": "300 rps"}
   ],
   "sustained": [
-    {"duration": 300, "arrivalRate": 200}
+    {"duration": 30, "arrivalRate": 300}
   ],
   "overload": [
-    {"duration": 30, "arrivalRate": 1200}
+    {"duration": 30, "arrivalRate": 300}
   ]
 }

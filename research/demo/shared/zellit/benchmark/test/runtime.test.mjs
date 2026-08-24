@@ -25,6 +25,15 @@ test('gevent-1 uses the exact normalized Django runtime contract', async () => {
   assert.match(env, /DJANGO_DATABASE_MODE=geventpool/)
 })
 
+test('gevent-2 keeps twenty pooled connections per two-worker container', async () => {
+  const {value} = await render('gevent-2')
+  assert.equal(value.runtime_label, 'gevent-2')
+  assert.equal(value.worker_class, 'gevent')
+  assert.equal(value.workers, 2)
+  assert.equal(value.database_mode, 'geventpool')
+  assert.equal(value.gevent_pool_max, 10)
+})
+
 test('sync-1 uses the exact normalized Django runtime contract', async () => {
   const {value} = await render('sync-1')
   assert.equal(value.runtime_label, 'sync-1')

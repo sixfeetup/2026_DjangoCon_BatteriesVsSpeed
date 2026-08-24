@@ -232,7 +232,8 @@ test('every slide has a semantic frontmatter family and exact eligible footer', 
 
   assert.equal(slides.length, 30)
   assert.ok(slides.every(slide => [...classTokens(slide)].some(token => semanticFamilies.has(token))))
-  assert.equal(contentClassTokenCount(slides, 'result-placeholder'), 2)
+  assert.equal(contentClassTokenCount(slides, 'result-placeholder'), 0)
+  assert.equal(slidesWithClass(slides, 'benchmark-slide').length, 2)
   assert.equal(slidesWithClass(slides, 'recommendation-slide').length, 2)
 
   for (const slide of slides) {
