@@ -82,3 +82,15 @@ test('deck uses the light semantic shell and local co-brand lockups', async () =
   assert.ok((deck.match(/class:.*deck-title/g) ?? []).length >= 2)
   assert.ok((deck.match(/class:.*section-divider/g) ?? []).length >= 3)
 })
+
+test('section dividers preserve original visible content and click directives', async () => {
+  const deck = await read('slides.md')
+  assert.match(deck, /<div class="section-number">01<\/div>[\s\S]*\| Concern \| Django \+ Ninja \| FastAPI \|[\s\S]*\| Validation & OpenAPI \| Ninja \| Built in \|[\s\S]*\| Reusable app ecosystem \| Deep, convention-driven \| Younger, more composable \|[\s\S]*Working comparison for discussion—not a scorecard\./)
+  assert.match(deck, /<div class="section-number">02<\/div>[\s\S]*<div v-click class="mt-14 text-5xl font-bold">\s*Do you actually need it\?\s*<\/div>/)
+  assert.match(deck, /<div class="section-number">03<\/div>[\s\S]*<div class="mt-10 text-3xl opacity-80">\s*Including ours\.\s*<\/div>[\s\S]*<div v-click class="mt-12 text-xl">\s*A benchmark measures a workload, an implementation, and an environment\.\s*<br>It does not measure your application\.\s*<\/div>/)
+})
+
+test('thank-you slide uses the title subtitle hierarchy', async () => {
+  const deck = await read('slides.md')
+  assert.match(deck, /# Thank you\s+<div class="deck-subtitle">Questions, code, methodology, raw results, and references<\/div>/)
+})

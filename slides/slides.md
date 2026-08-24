@@ -252,6 +252,20 @@ class: section-divider no-deck-footer
 <div class="section-kicker">THE COMPARISON</div>
 # Different batteries.
 ## Different opinions.
+
+| Concern | Django + Ninja | FastAPI |
+|---|---|---|
+| Validation & OpenAPI | Ninja | Built in |
+| Data layer | Django ORM convention | Choose your own |
+| Admin | Django admin | Choose/build an option |
+| Auth & permissions | Django ecosystem | API-oriented tools + choices |
+| WebSockets | ASGI/Channels or a service | Starlette/FastAPI support |
+| Reusable app ecosystem | Deep, convention-driven | Younger, more composable |
+
+<div class="mt-6 text-sm opacity-60">
+Working comparison for discussion—not a scorecard.
+</div>
+
 <!--
 DRAFT / FACT CHECK: Verify every row and decide whether DRF deserves a third column.
 Potential matrix rows for appendix or repo: templates, background jobs, testing, migrations, ORM async behavior, docs customization, deployment.
@@ -386,6 +400,11 @@ class: section-divider no-deck-footer
 <div class="section-kicker">THE WORKLOAD</div>
 # Async?
 ## Start with what the application actually does.
+
+<div v-click class="mt-14 text-5xl font-bold">
+Do you actually need it?
+</div>
+
 <!--
 Keep this visually spare so the audience listens to the conversation.
 
@@ -469,7 +488,16 @@ class: section-divider no-deck-footer
 <div class="section-number">03</div>
 <div class="section-kicker">THE EVIDENCE</div>
 # All benchmarks are biased.
-## Including ours.
+
+<div class="mt-10 text-3xl opacity-80">
+Including ours.
+</div>
+
+<div v-click class="mt-12 text-xl">
+A benchmark measures a workload, an implementation, and an environment.
+<br>It does not measure your application.
+</div>
+
 <!--
 This line was central to the planning conversation. Establish humility before showing any chart.
 
@@ -857,7 +885,7 @@ class: deck-title no-deck-footer
 
 # Thank you
 
-## Questions, code, methodology, raw results, and references
+<div class="deck-subtitle">Questions, code, methodology, raw results, and references</div>
 
 <div class="deck-speakers"><strong>Calvin Hendryx-Parker</strong><span>·</span><strong>Frank Wiles</strong></div>
 <div class="deck-repo">github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed</div>
