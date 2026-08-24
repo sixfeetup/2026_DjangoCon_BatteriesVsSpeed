@@ -68,6 +68,14 @@ test('theme uses bundled local fontsource imports only', async () => {
   assert.doesNotMatch(css, /fonts\.googleapis|fonts\.gstatic|https?:\/\//)
 })
 
+test('theme pins inline code contrast independently of browser color scheme', async () => {
+  const css = await read('styles/index.css')
+  assert.match(
+    css,
+    /\.slidev-layout\s+:not\(pre\)\s*>\s*code\s*\{[^}]*color:\s*var\(--revsys-navy\);[^}]*background:\s*#e9e8f0;/s,
+  )
+})
+
 test('only the title vs. receives a dedicated purple treatment', async () => {
   const css = await read('styles/index.css')
   const slides = await parseDeck()

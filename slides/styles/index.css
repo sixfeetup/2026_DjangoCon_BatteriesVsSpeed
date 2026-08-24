@@ -42,6 +42,7 @@
 .slidev-layout code,
 .slidev-layout pre,
 .deck-footer__number { font-family: 'Roboto Mono', ui-monospace, monospace; }
+.slidev-layout :not(pre) > code { color: var(--revsys-navy); background: #e9e8f0; }
 .brand-rule { height: 3px; background: linear-gradient(90deg, var(--sixie-purple), var(--revsys-blue), transparent); }
 
 .slidev-layout h1 { letter-spacing: -0.045em; line-height: 0.94; }
