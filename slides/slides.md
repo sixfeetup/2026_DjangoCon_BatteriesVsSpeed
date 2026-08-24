@@ -7,7 +7,7 @@ info: |
 class: deck-title no-deck-footer
 drawings:
   persist: false
-transition: none
+transition: slide-left
 comark: true
 duration: 45min
 mdc: true
@@ -15,7 +15,7 @@ mdc: true
 
 <BrandLockup size="lg" />
 
-# Django <span class="framework-accent">vs.</span> FastAPI
+# Django <span class="title-vs">vs.</span> FastAPI
 
 ## Batteries vs. Speed
 
@@ -95,7 +95,7 @@ class: content-slide text-center
 
 <div class="mt-10 rounded-3xl bg-white/85 px-10 py-8 text-4xl font-bold shadow-lg">
   Django <span class="opacity-50">+</span> Django Ninja
-  <span class="mx-5 framework-accent" style="--framework-accent: var(--sixie-purple)">vs.</span>
+  <span class="mx-5 framework-accent">vs.</span>
   FastAPI
 </div>
 
@@ -169,7 +169,7 @@ Timing: 7:00–7:15
 -->
 
 ---
-class: content-slide
+class: content-slide code-slide
 ---
 
 # FastAPI
@@ -206,7 +206,7 @@ Do not teach FastAPI syntax—the audience can inspect the repository.
 -->
 
 ---
-class: content-slide
+class: content-slide code-slide
 ---
 
 # Django Ninja
@@ -235,7 +235,7 @@ def update_item(request, item_id: int, item: Item):
   </div>
 </div>
 
-<div v-click class="absolute right-16 bottom-16 text-2xl rotate--3">
+<div v-click class="absolute right-16 bottom-14 text-2xl rotate--3">
 Wait… did it change?
 </div>
 
@@ -565,7 +565,7 @@ class: content-slide
   <div v-click><span class="mr-2 text-green-600">✓</span>Raw results in the repository</div>
 </div>
 
-<div v-click class="mt-12 text-center text-2xl font-bold">
+<div v-click class="mt-6 text-center text-2xl font-bold">
 Throughput + latency + errors + resources
 </div>
 

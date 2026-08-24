@@ -68,6 +68,7 @@
 .slidev-layout .mermaid text { color: var(--deck-ink); fill: var(--deck-ink); font-family: Poppins, Inter, ui-sans-serif, system-ui, sans-serif; }
 
 .deck-title h1 { max-width: 10.5em; color: var(--deck-ink); font-size: 4.7rem; font-weight: 800; letter-spacing: -0.06em; line-height: 0.9; }
+.title-vs { color: var(--sixie-purple); }
 .deck-subtitle { margin-top: 1rem; color: var(--revsys-navy); font-size: 1.7rem; font-weight: 600; letter-spacing: -0.02em; }
 .deck-speakers { display: flex; gap: 0.85rem; align-items: center; margin-top: 2rem; color: var(--deck-ink); font-size: 1.18rem; font-weight: 700; }
 .deck-speakers span { color: var(--deck-muted); font-weight: 500; }
@@ -102,10 +103,21 @@
 .content-slide { display: grid; gap: 1.25rem; align-content: start; }
 .content-slide > * { min-width: 0; }
 .content-slide h1 { margin-bottom: 0.3rem; font-size: 3.2rem; }
+.content-slide:not(.statement-slide) > h1::after,
+.recommendation-slide > h1::after {
+  content: '';
+  display: block;
+  width: min(16rem, 100%);
+  height: 3px;
+  margin-top: 0.55rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--sixie-purple), var(--sixie-indigo) 52%, var(--revsys-blue));
+}
 .statement-slide { display: grid; place-items: center; text-align: center; }
 .statement-slide h1 { max-width: 13em; font-size: 4.1rem; line-height: 0.98; }
 .statement-slide p { max-width: 38rem; margin-inline: auto; color: var(--deck-muted); font-size: 1.25rem; }
 
+.code-slide .code-comparison { min-width: 0; }
 .code-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; align-items: stretch; }
 .dark-code-panel { overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 22px; background: #25242c; color: #f8f7fb; box-shadow: 0 22px 52px rgba(32, 32, 42, 0.25); }
 .dark-code-panel header { display: flex; align-items: center; justify-content: space-between; padding: 0.72rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); color: #fff; font-weight: 700; }
@@ -114,8 +126,10 @@
 .dark-code-panel .slidev-code-dishonored { opacity: 0.62 !important; }
 
 .deck-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-.deck-card { position: relative; overflow: hidden; min-height: 8.5rem; padding: 1.05rem; border: 1px solid var(--deck-line); border-radius: 22px; background: var(--deck-panel); box-shadow: var(--deck-shadow); }
-.deck-card::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 5px; background: linear-gradient(90deg, var(--sixie-purple), var(--sixie-indigo), var(--revsys-blue)); }
+.deck-card { --deck-card-accent: var(--sixie-purple); position: relative; overflow: hidden; min-height: 8.5rem; padding: 1.05rem; border: 1px solid var(--deck-line); border-radius: 22px; background: var(--deck-panel); box-shadow: var(--deck-shadow); }
+.deck-card::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 5px; background: var(--deck-card-accent); }
+.deck-card:nth-child(3n + 2 of .deck-card) { --deck-card-accent: var(--sixie-indigo); }
+.deck-card:nth-child(3n of .deck-card) { --deck-card-accent: var(--revsys-blue); }
 .deck-card h3 { margin: 0.45rem 0 0.45rem; font-size: 1.15rem; }
 .deck-card p { margin: 0; font-size: 0.82rem; }
 

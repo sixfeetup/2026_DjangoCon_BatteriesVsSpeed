@@ -4,10 +4,19 @@ import { test } from 'node:test'
 import { parseSync } from '@slidev/parser'
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
-const occurrences = (text, value) => (text.match(new RegExp(value, 'g')) ?? []).length
+const parseDeck = async () => parseSync(await read('slides.md'), 'slides.md').slides
+const classTokens = slide => new Set(String(slide.frontmatter.class ?? '').split(/\s+/).filter(Boolean))
+const slidesWithClass = (slides, token) => slides.filter(slide => classTokens(slide).has(token))
+const contentClassTokenCount = (slides, token) => slides.reduce((total, slide) => {
+  const matches = [...slide.content.matchAll(/\bclass=(['"])(.*?)\1/g)]
+  return total + matches.reduce((count, match) => (
+    count + match[2].split(/\s+/).filter(className => className === token).length
+  ), 0)
+}, 0)
 
 const semanticSelectors = [
   '.deck-title',
+  '.title-vs',
   '.deck-subtitle',
   '.deck-speakers',
   '.deck-repo',
@@ -16,6 +25,7 @@ const semanticSelectors = [
   '.section-kicker',
   '.content-slide',
   '.statement-slide',
+  '.code-slide',
   '.code-comparison',
   '.brand-rule',
   '.deck-cards',
@@ -58,11 +68,36 @@ test('theme uses bundled local fontsource imports only', async () => {
   assert.doesNotMatch(css, /fonts\.googleapis|fonts\.gstatic|https?:\/\//)
 })
 
-test('framework styling stays neutral and company-agnostic', async () => {
+test('only the title vs. receives a dedicated purple treatment', async () => {
   const css = await read('styles/index.css')
+  const slides = await parseDeck()
+  const title = slides[0]
   const frameworkStyles = css.slice(css.indexOf('.framework-accent'), css.indexOf('.diagram-panel'))
+
+  assert.equal(title.frontmatter.transition, 'slide-left')
+  assert.match(title.content, /Django <span class="title-vs">vs\.<\/span> FastAPI/)
+  assert.match(title.content, /A pragmatic conversation about framework trade-offs/)
+  assert.equal(contentClassTokenCount(slides, 'title-vs'), 1)
+  assert.match(css, /\.title-vs\s*\{[^}]*color:\s*var\(--sixie-purple\)/s)
   assert.ok(frameworkStyles.includes('.framework-accent'), 'missing framework style block')
   assert.doesNotMatch(frameworkStyles, /sixie|revsys/i)
+  assert.doesNotMatch(slides.map(slide => slide.content).join('\n'), /--framework-accent:\s*var\(--(?:sixie|revsys)/i)
+})
+
+test('content-family headings use the shared purple-to-blue rule', async () => {
+  const css = await read('styles/index.css')
+  assert.match(css, /\.content-slide:not\(\.statement-slide\)\s*>\s*h1::after/)
+  assert.match(css, /\.recommendation-slide\s*>\s*h1::after/)
+  assert.match(css, /h1::after[\s\S]*background:\s*linear-gradient\([^;]*var\(--sixie-purple\)[^;]*var\(--revsys-blue\)/)
+  assert.doesNotMatch(css, /\.deck-title[^,{]*h1::after|\.section-divider[^,{]*h1::after/)
+})
+
+test('cards cycle single-color purple, indigo, and blue accents', async () => {
+  const css = await read('styles/index.css')
+  assert.match(css, /\.deck-card\s*\{[^}]*--deck-card-accent:\s*var\(--sixie-purple\)/s)
+  assert.match(css, /\.deck-card::before\s*\{[^}]*background:\s*var\(--deck-card-accent\)/s)
+  assert.match(css, /\.deck-card:nth-child\(3n\s*\+\s*2\s+of\s+\.deck-card\)\s*\{[^}]*--deck-card-accent:\s*var\(--sixie-indigo\)/s)
+  assert.match(css, /\.deck-card:nth-child\(3n\s+of\s+\.deck-card\)\s*\{[^}]*--deck-card-accent:\s*var\(--revsys-blue\)/s)
 })
 
 test('brand components use local assets and accessible names', async () => {
@@ -92,11 +127,12 @@ test('section dividers preserve original visible content and click directives', 
   assert.match(deck, /<div class="section-number">03<\/div>[\s\S]*<div class="mt-10 text-3xl opacity-80">\s*Including ours\.\s*<\/div>[\s\S]*<div v-click class="mt-12 text-xl">\s*A benchmark measures a workload, an implementation, and an environment\.\s*<br>It does not measure your application\.\s*<\/div>/)
 })
 
-test('comparison half uses semantic slide families', async () => {
-  const deck = await read('slides.md')
-  assert.ok(occurrences(deck, 'content-slide') >= 6)
-  assert.ok(occurrences(deck, 'code-comparison') >= 2)
-  assert.ok(occurrences(deck, 'deck-card') >= 6)
+test('comparison half uses frontmatter families and class-token card checks', async () => {
+  const slides = await parseDeck()
+  assert.ok(slidesWithClass(slides, 'content-slide').length >= 6)
+  assert.equal(slidesWithClass(slides, 'code-slide').length, 2)
+  assert.equal(contentClassTokenCount(slidesWithClass(slides, 'code-slide'), 'code-comparison'), 2)
+  assert.ok(contentClassTokenCount(slides, 'deck-card') >= 6)
 })
 
 test('thank-you slide uses the title subtitle hierarchy', async () => {
@@ -104,15 +140,40 @@ test('thank-you slide uses the title subtitle hierarchy', async () => {
   assert.match(deck, /# Thank you\s+<div class="deck-subtitle">Questions, code, methodology, raw results, and references<\/div>/)
 })
 
-test('every slide has a semantic family and branding remains framework-neutral', async () => {
+test('every slide has a semantic frontmatter family and exact eligible footer', async () => {
+  const slides = await parseDeck()
+  const semanticFamilies = new Set([
+    'deck-title',
+    'section-divider',
+    'content-slide',
+    'statement-slide',
+    'code-slide',
+    'recommendation-slide',
+  ])
+
+  assert.equal(slides.length, 30)
+  assert.ok(slides.every(slide => [...classTokens(slide)].some(token => semanticFamilies.has(token))))
+  assert.equal(contentClassTokenCount(slides, 'result-placeholder'), 2)
+  assert.equal(slidesWithClass(slides, 'recommendation-slide').length, 2)
+
+  for (const slide of slides) {
+    const footerCount = (slide.content.match(/<DeckFooter\s*\/>/g) ?? []).length
+    const eligible = !classTokens(slide).has('no-deck-footer')
+    assert.equal(footerCount, eligible ? 1 : 0, `slide ${slide.index + 1} footer count`)
+  }
+})
+
+test('branding remains framework-neutral and runtime assets stay local', async () => {
   const deck = await read('slides.md')
-  const parsed = parseSync(deck, 'slides.md')
-  assert.equal(parsed.slides.length, 30)
-  assert.ok((deck.match(/<DeckFooter/g) ?? []).length >= 18)
-  assert.equal((deck.match(/result-placeholder/g) ?? []).length, 2)
-  assert.equal((deck.match(/recommendation-slide/g) ?? []).length, 2)
   assert.doesNotMatch(deck, /<h1\b/i)
   assert.doesNotMatch(deck, /sixie-(purple|indigo)[^\n]*(FastAPI|Django)/i)
   assert.doesNotMatch(deck, /revsys-(blue|navy)[^\n]*(FastAPI|Django)/i)
   assert.doesNotMatch(deck, /background:\s*https?:\/\//)
+})
+
+test('unused Seriph theme is absent from manifests', async () => {
+  const packageJson = await read('package.json')
+  const lockfile = await read('pnpm-lock.yaml')
+  assert.doesNotMatch(packageJson, /@slidev\/theme-seriph/)
+  assert.doesNotMatch(lockfile, /@slidev\/theme-seriph/)
 })
