@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
+const occurrences = (text, value) => (text.match(new RegExp(value, 'g')) ?? []).length
 
 const semanticSelectors = [
   '.deck-title',
@@ -88,6 +89,13 @@ test('section dividers preserve original visible content and click directives', 
   assert.match(deck, /<div class="section-number">01<\/div>[\s\S]*\| Concern \| Django \+ Ninja \| FastAPI \|[\s\S]*\| Validation & OpenAPI \| Ninja \| Built in \|[\s\S]*\| Reusable app ecosystem \| Deep, convention-driven \| Younger, more composable \|[\s\S]*Working comparison for discussion—not a scorecard\./)
   assert.match(deck, /<div class="section-number">02<\/div>[\s\S]*<div v-click class="mt-14 text-5xl font-bold">\s*Do you actually need it\?\s*<\/div>/)
   assert.match(deck, /<div class="section-number">03<\/div>[\s\S]*<div class="mt-10 text-3xl opacity-80">\s*Including ours\.\s*<\/div>[\s\S]*<div v-click class="mt-12 text-xl">\s*A benchmark measures a workload, an implementation, and an environment\.\s*<br>It does not measure your application\.\s*<\/div>/)
+})
+
+test('comparison half uses semantic slide families', async () => {
+  const deck = await read('slides.md')
+  assert.ok(occurrences(deck, 'content-slide') >= 6)
+  assert.ok(occurrences(deck, 'code-comparison') >= 2)
+  assert.ok(occurrences(deck, 'deck-card') >= 6)
 })
 
 test('thank-you slide uses the title subtitle hierarchy', async () => {

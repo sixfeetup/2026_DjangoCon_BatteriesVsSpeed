@@ -52,27 +52,31 @@ Timing: 2:00–3:00
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-12
+class: content-slide
 ---
 
 # Two perspectives
 
-<div class="mt-8 text-2xl font-bold">Calvin Hendryx-Parker</div>
-
-- FastAPI practitioner
-- Agency and operations perspective
-- Built and deployed a real FastAPI side project
-- Here to defend speed—and question the hype
-
-::right::
-
-<div class="mt-21 text-2xl font-bold">Frank Wiles</div>
-
-- Long-time Django practitioner
-- Deep ecosystem and scaling experience
-- Uses Django where the boring parts matter
-- Here to defend batteries—and question their cost
+<div class="comparison-grid mt-8">
+  <section class="deck-card">
+    <div class="text-2xl font-bold">Calvin Hendryx-Parker</div>
+    <ul class="mt-5 text-xl leading-8">
+      <li>FastAPI practitioner</li>
+      <li>Agency and operations perspective</li>
+      <li>Built and deployed a real FastAPI side project</li>
+      <li>Here to defend speed—and question the hype</li>
+    </ul>
+  </section>
+  <section class="deck-card">
+    <div class="text-2xl font-bold">Frank Wiles</div>
+    <ul class="mt-5 text-xl leading-8">
+      <li>Long-time Django practitioner</li>
+      <li>Deep ecosystem and scaling experience</li>
+      <li>Uses Django where the boring parts matter</li>
+      <li>Here to defend batteries—and question their cost</li>
+    </ul>
+  </section>
+</div>
 
 <DeckFooter />
 <!--
@@ -84,14 +88,14 @@ Timing: 3:00–4:00
 
 ---
 layout: center
-class: text-center
+class: content-slide text-center
 ---
 
 # What are we actually comparing?
 
-<div class="mt-10 text-4xl">
+<div class="mt-10 rounded-3xl bg-white/85 px-10 py-8 text-4xl font-bold shadow-lg">
   Django <span class="opacity-50">+</span> Django Ninja
-  <span class="mx-5 opacity-50">vs.</span>
+  <span class="mx-5 framework-accent" style="--framework-accent: var(--sixie-purple)">vs.</span>
   FastAPI
 </div>
 
@@ -109,24 +113,26 @@ Timing: 4:00–5:30
 -->
 
 ---
+class: content-slide
+---
 
 # Start with context, not framework
 
-<div class="grid grid-cols-3 gap-5 mt-10">
-  <div class="rounded-xl border border-main p-5">
+<div class="deck-cards mt-10">
+  <div class="deck-card">
     <div class="text-3xl mb-3">👥</div>
-    <div class="text-xl font-bold">Your team</div>
-    <div class="mt-3 opacity-75">What do they know, operate, and debug well?</div>
+    <h3>Your team</h3>
+    <p>What do they know, operate, and debug well?</p>
   </div>
-  <div class="rounded-xl border border-main p-5">
+  <div class="deck-card">
     <div class="text-3xl mb-3">🧭</div>
-    <div class="text-xl font-bold">Your scope</div>
-    <div class="mt-3 opacity-75">A bounded API—or the beginning of a product?</div>
+    <h3>Your scope</h3>
+    <p>A bounded API—or the beginning of a product?</p>
   </div>
-  <div class="rounded-xl border border-main p-5">
+  <div class="deck-card">
     <div class="text-3xl mb-3">📈</div>
-    <div class="text-xl font-bold">Your workload</div>
-    <div class="mt-3 opacity-75">Where is the real bottleneck?</div>
+    <h3>Your workload</h3>
+    <p>Where is the real bottleneck?</p>
   </div>
 </div>
 
@@ -146,7 +152,7 @@ Timing: 5:30–7:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide content-slide
 ---
 
 # Did the slide change?
@@ -163,8 +169,14 @@ Timing: 7:00–7:15
 -->
 
 ---
+class: content-slide
+---
 
 # FastAPI
+
+<div class="code-comparison" style="grid-template-columns: minmax(0, 1fr);">
+  <div class="dark-code-panel">
+    <header><span class="framework-label" style="--framework-accent: #f8f7fb">FastAPI</span></header>
 
 ```python {1-2|4|7-10|12-14|all}
 from fastapi import FastAPI
@@ -184,6 +196,9 @@ def update_item(item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
 ```
 
+  </div>
+</div>
+
 <DeckFooter />
 <!--
 Walk only the shape: imports, app, schema, decorated operation.
@@ -191,8 +206,14 @@ Do not teach FastAPI syntax—the audience can inspect the repository.
 -->
 
 ---
+class: content-slide
+---
 
 # Django Ninja
+
+<div class="code-comparison" style="grid-template-columns: minmax(0, 1fr);">
+  <div class="dark-code-panel">
+    <header><span class="framework-label" style="--framework-accent: #f8f7fb">Django Ninja</span></header>
 
 ```python {1|3|6-9|11-13|all}
 from ninja import NinjaAPI, Schema
@@ -210,6 +231,9 @@ class Item(Schema):
 def update_item(request, item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
 ```
+
+  </div>
+</div>
 
 <div v-click class="absolute right-16 bottom-10 text-2xl rotate--3">
 Wait… did it change?
@@ -253,6 +277,8 @@ class: section-divider no-deck-footer
 # Different batteries.
 ## Different opinions.
 
+<div class="comparison-table mt-6 [&_tbody_tr:nth-child(even)_td]:!bg-[rgba(81,148,252,0.06)]">
+
 | Concern | Django + Ninja | FastAPI |
 |---|---|---|
 | Validation & OpenAPI | Ninja | Built in |
@@ -261,6 +287,8 @@ class: section-divider no-deck-footer
 | Auth & permissions | Django ecosystem | API-oriented tools + choices |
 | WebSockets | ASGI/Channels or a service | Starlette/FastAPI support |
 | Reusable app ecosystem | Deep, convention-driven | Younger, more composable |
+
+</div>
 
 <div class="mt-6 text-sm opacity-60">
 Working comparison for discussion—not a scorecard.
@@ -276,13 +304,14 @@ Timing: 10:00–12:00
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-12
+class: content-slide
 ---
 
 # A battery that buys leverage
 
-## Django Activity Stream
+<div class="comparison-grid mt-8">
+  <div class="dark-code-panel">
+    <header><span class="framework-label" style="--framework-accent: #f8f7fb">Django Activity Stream</span></header>
 
 ```python
 from actstream import action
@@ -295,21 +324,19 @@ action.send(
 )
 ```
 
-::right::
-
-<div class="mt-12 text-xl">
-
-A small integration can provide:
-
-- actors, verbs, objects, and targets
-- activity feeds
-- reusable queries and relationships
-- conventions already tied to Django models
-
-</div>
-
-<div v-click class="mt-8 text-2xl font-bold">
-You could build it. But should you?
+  </div>
+  <div class="deck-card text-xl">
+    <div class="text-2xl font-bold">A small integration can provide:</div>
+    <ul class="mt-5 leading-8">
+      <li>actors, verbs, objects, and targets</li>
+      <li>activity feeds</li>
+      <li>reusable queries and relationships</li>
+      <li>conventions already tied to Django models</li>
+    </ul>
+    <div v-click class="mt-8 text-2xl font-bold">
+      You could build it. But should you?
+    </div>
+  </div>
 </div>
 
 <DeckFooter />
@@ -325,25 +352,27 @@ Timing: 12:00–14:00
 
 ---
 layout: center
-class: text-center
+class: content-slide text-center
 ---
 
 # Batteries have a shelf life.
 
-<div class="mt-10 flex justify-center items-center gap-5 text-2xl">
-  <div class="rounded-xl border border-main px-6 py-4">django-fsm</div>
+<div class="mt-10 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-5 text-2xl">
+  <div class="rounded-xl border border-main bg-white/85 px-6 py-4 shadow-sm">django-fsm</div>
   <div class="text-3xl opacity-50">→</div>
-  <div class="rounded-xl border border-main px-6 py-4">maintenance slows</div>
+  <div class="rounded-xl border border-main bg-white/85 px-6 py-4 shadow-sm">maintenance slows</div>
   <div class="text-3xl opacity-50">→</div>
-  <div class="rounded-xl border border-main px-6 py-4">django-fsm-2</div>
+  <div class="rounded-xl border border-main bg-white/85 px-6 py-4 shadow-sm">django-fsm-2</div>
 </div>
 
-<div class="grid grid-cols-2 gap-10 mt-12 text-left">
-  <div>
+<div class="comparison-grid mt-12 text-left">
+  <div class="rounded-2xl border border-main bg-white p-6 shadow-sm">
+    <div class="mb-4 h-1.5 w-18 rounded-full bg-green-500"></div>
     <div class="text-xl font-bold text-green-500">What you bought</div>
     <div class="mt-2 opacity-80">A mature design, saved time, and community experience.</div>
   </div>
-  <div>
+  <div class="rounded-2xl border border-main bg-white p-6 shadow-sm">
+    <div class="mb-4 h-1.5 w-18 rounded-full bg-amber-500"></div>
     <div class="text-xl font-bold text-amber-500">What you still own</div>
     <div class="mt-2 opacity-80">Compatibility, upgrades, security, and a contingency plan.</div>
   </div>
@@ -360,8 +389,12 @@ Timing: 14:00–16:00
 -->
 
 ---
+class: content-slide
+---
 
 # Build, buy, or vendor?
+
+<div class="diagram-panel">
 
 ```mermaid {theme: 'neutral', scale: 0.8}
 flowchart LR
@@ -376,6 +409,8 @@ flowchart LR
     D --> O
     B --> O
 ```
+
+</div>
 
 <div v-click class="mt-4 text-center text-xl">
 AI can lower implementation cost. It does not erase ownership.
