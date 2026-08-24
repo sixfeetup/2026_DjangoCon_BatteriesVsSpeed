@@ -1,11 +1,10 @@
 ---
-theme: seriph
-background: https://cover.sli.dev
+theme: default
 title: "Django vs. FastAPI: Batteries vs. Speed"
 info: |
   ## Django vs. FastAPI: Batteries vs. Speed
   A pragmatic DjangoCon conversation about framework trade-offs.
-class: text-center
+class: deck-title no-deck-footer
 drawings:
   persist: false
 transition: slide-left
@@ -14,21 +13,17 @@ duration: 45min
 mdc: true
 ---
 
-# Django vs. FastAPI
+<BrandLockup size="lg" />
+
+# Django <span class="title-vs">vs.</span> FastAPI
 
 ## Batteries vs. Speed
 
-<div class="mt-8 text-2xl">
-  Calvin Hendryx-Parker &nbsp;·&nbsp; Frank Wiles
-</div>
+<div class="deck-subtitle">A pragmatic conversation about framework trade-offs</div>
+<div class="deck-speakers"><strong>Calvin Hendryx-Parker</strong><span>·</span><strong>Frank Wiles</strong></div>
+<div class="deck-repo">github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed</div>
 
-<div class="mt-12 text-lg opacity-80">
-  Slides, examples, and eventually reproducible benchmarks
-</div>
-
-<div class="mt-2 font-mono text-sm">
-  github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed
-</div>
+<RepositoryQr />
 
 <!--
 DRAFT: Add a large QR code for the repository.
@@ -41,15 +36,16 @@ Timing: 0:00–2:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # There is no wrong answer here.
 
-<div v-click class="mt-10 text-2xl opacity-80">
+<div class="mt-10 text-2xl opacity-80">
 There are only trade-offs that fit your context—or do not.
 </div>
 
+<DeckFooter />
 <!--
 Set the tone immediately: this is not a framework cage match.
 Both projects are healthy choices. We are comparing constraints, not declaring a universal winner.
@@ -58,28 +54,33 @@ Timing: 2:00–3:00
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-12
+class: content-slide
 ---
 
 # Two perspectives
 
-<div class="mt-8 text-2xl font-bold">Calvin Hendryx-Parker</div>
+<div class="comparison-grid mt-8">
+  <section class="deck-card">
+    <div class="text-2xl font-bold">Calvin Hendryx-Parker</div>
+    <ul class="mt-5 text-xl leading-8">
+      <li>FastAPI practitioner</li>
+      <li>Agency and operations perspective</li>
+      <li>Built and deployed a real FastAPI side project</li>
+      <li>Here to defend speed—and question the hype</li>
+    </ul>
+  </section>
+  <section class="deck-card">
+    <div class="text-2xl font-bold">Frank Wiles</div>
+    <ul class="mt-5 text-xl leading-8">
+      <li>Long-time Django practitioner</li>
+      <li>Deep ecosystem and scaling experience</li>
+      <li>Uses Django where the boring parts matter</li>
+      <li>Here to defend batteries—and question their cost</li>
+    </ul>
+  </section>
+</div>
 
-- FastAPI practitioner
-- Agency and operations perspective
-- Built and deployed a real FastAPI side project
-- Here to defend speed—and question the hype
-
-::right::
-
-<div class="mt-21 text-2xl font-bold">Frank Wiles</div>
-
-- Long-time Django practitioner
-- Deep ecosystem and scaling experience
-- Uses Django where the boring parts matter
-- Here to defend batteries—and question their cost
-
+<DeckFooter />
 <!--
 DRAFT: Frank and Calvin should replace these bullets with the bios they want spoken.
 Avoid reading biographies. Establish why each person has useful experience with the trade-offs.
@@ -89,21 +90,22 @@ Timing: 3:00–4:00
 
 ---
 layout: center
-class: text-center
+class: content-slide text-center
 ---
 
 # What are we actually comparing?
 
-<div class="mt-10 text-4xl">
+<div class="mt-10 rounded-3xl bg-white/85 px-10 py-8 text-4xl font-bold shadow-lg">
   Django <span class="opacity-50">+</span> Django Ninja
-  <span class="mx-5 opacity-50">vs.</span>
+  <span class="mx-5 framework-accent">vs.</span>
   FastAPI
 </div>
 
-<div v-click class="mt-12 text-xl opacity-75">
+<div class="mt-12 text-xl opacity-75">
 DRF still matters—but it is not the only Django API story.
 </div>
 
+<DeckFooter />
 <!--
 Say this explicitly so the audience does not feel that the title promised bare Django vs. FastAPI and the talk quietly substituted Ninja.
 
@@ -113,31 +115,34 @@ Timing: 4:00–5:30
 -->
 
 ---
+class: content-slide
+---
 
 # Start with context, not framework
 
-<div class="grid grid-cols-3 gap-5 mt-10">
-  <div class="rounded-xl border border-main p-5">
+<div class="deck-cards mt-10">
+  <div class="deck-card">
     <div class="text-3xl mb-3">👥</div>
-    <div class="text-xl font-bold">Your team</div>
-    <div class="mt-3 opacity-75">What do they know, operate, and debug well?</div>
+    <h3>Your team</h3>
+    <p>What do they know, operate, and debug well?</p>
   </div>
-  <div class="rounded-xl border border-main p-5">
+  <div class="deck-card">
     <div class="text-3xl mb-3">🧭</div>
-    <div class="text-xl font-bold">Your scope</div>
-    <div class="mt-3 opacity-75">A bounded API—or the beginning of a product?</div>
+    <h3>Your scope</h3>
+    <p>A bounded API—or the beginning of a product?</p>
   </div>
-  <div class="rounded-xl border border-main p-5">
+  <div class="deck-card">
     <div class="text-3xl mb-3">📈</div>
-    <div class="text-xl font-bold">Your workload</div>
-    <div class="mt-3 opacity-75">Where is the real bottleneck?</div>
+    <h3>Your workload</h3>
+    <p>Where is the real bottleneck?</p>
   </div>
 </div>
 
-<div v-click class="mt-10 text-2xl text-center">
+<div class="mt-10 text-2xl text-center">
 Framework choice is an organizational decision, too.
 </div>
 
+<DeckFooter />
 <!--
 Examples from the transcript:
 - A focused internal service with three endpoints and bounded scope may be a natural FastAPI project.
@@ -149,15 +154,13 @@ Timing: 5:30–7:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide content-slide
 ---
 
-# Did the slide change?
+# A minimal API in FastAPI…
 
-<div class="mt-12 text-2xl opacity-75">
-A minimal API in FastAPI…
-</div>
 
+<DeckFooter />
 <!--
 Set up the code-comparison bit. Frank can prompt Calvin to show the FastAPI version.
 
@@ -165,10 +168,16 @@ Timing: 7:00–7:15
 -->
 
 ---
+class: content-slide code-slide
+---
 
 # FastAPI
 
-```python {1-2|4|7-10|12-14|all}
+<div class="code-comparison" style="grid-template-columns: minmax(0, 1fr);">
+  <div class="dark-code-panel">
+    <header><span class="framework-label" style="--framework-accent: #f8f7fb">FastAPI</span></header>
+
+```python
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -186,16 +195,26 @@ def update_item(item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
 ```
 
+  </div>
+</div>
+
+<DeckFooter />
 <!--
 Walk only the shape: imports, app, schema, decorated operation.
 Do not teach FastAPI syntax—the audience can inspect the repository.
 -->
 
 ---
+class: content-slide code-slide
+---
 
 # Django Ninja
 
-```python {1|3|6-9|11-13|all}
+<div class="code-comparison" style="grid-template-columns: minmax(0, 1fr);">
+  <div class="dark-code-panel">
+    <header><span class="framework-label" style="--framework-accent: #f8f7fb">Django Ninja</span></header>
+
+```python
 from ninja import NinjaAPI, Schema
 
 api = NinjaAPI()
@@ -212,10 +231,14 @@ def update_item(request, item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
 ```
 
-<div v-click class="absolute right-16 bottom-10 text-2xl rotate--3">
+  </div>
+</div>
+
+<div v-click class="absolute right-16 bottom-14 text-2xl rotate--3">
 Wait… did it change?
 </div>
 
+<DeckFooter />
 <!--
 Use the transcript's planned joke: one presenter claims the slide did not move.
 Then highlight the actual differences: imports, app/API naming, Schema/BaseModel, and Ninja's request argument.
@@ -227,7 +250,7 @@ Timing through this slide: 9:30
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # Syntax is not the decision.
@@ -236,6 +259,7 @@ class: text-center
 The interesting differences emerge as the application grows.
 </div>
 
+<DeckFooter />
 <!--
 Transition from code to batteries and ecosystem.
 Both provide type-driven schemas, validation, routing, and generated API documentation. The meaningful divergence is architecture and what can be added later.
@@ -244,8 +268,17 @@ Timing: 9:30–10:00
 -->
 
 ---
+class: section-divider no-deck-footer
+---
 
-# Different batteries. Different opinions.
+<div class="section-number">01</div>
+<div class="section-kicker">THE COMPARISON</div>
+
+# Different batteries.
+
+## Different opinions.
+
+<div class="comparison-table mt-6 [&_tbody_tr:nth-child(even)_td]:!bg-[rgba(81,148,252,0.06)]">
 
 | Concern | Django + Ninja | FastAPI |
 |---|---|---|
@@ -255,6 +288,8 @@ Timing: 9:30–10:00
 | Auth & permissions | Django ecosystem | API-oriented tools + choices |
 | WebSockets | ASGI/Channels or a service | Starlette/FastAPI support |
 | Reusable app ecosystem | Deep, convention-driven | Younger, more composable |
+
+</div>
 
 <div class="mt-6 text-sm opacity-60">
 Working comparison for discussion—not a scorecard.
@@ -270,13 +305,14 @@ Timing: 10:00–12:00
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-12
+class: content-slide
 ---
 
 # A battery that buys leverage
 
-## Django Activity Stream
+<div class="comparison-grid mt-8">
+  <div class="dark-code-panel">
+    <header><span class="framework-label" style="--framework-accent: #f8f7fb">Django Activity Stream</span></header>
 
 ```python
 from actstream import action
@@ -289,23 +325,22 @@ action.send(
 )
 ```
 
-::right::
-
-<div class="mt-12 text-xl">
-
-A small integration can provide:
-
-- actors, verbs, objects, and targets
-- activity feeds
-- reusable queries and relationships
-- conventions already tied to Django models
-
+  </div>
+  <div class="deck-card text-xl">
+    <div class="text-2xl font-bold">A small integration can provide:</div>
+    <ul class="mt-5 leading-8">
+      <li>actors, verbs, objects, and targets</li>
+      <li>activity feeds</li>
+      <li>reusable queries and relationships</li>
+      <li>conventions already tied to Django models</li>
+    </ul>
+    <div class="mt-5 text-2xl font-bold">
+      You could build it. But should you?
+    </div>
+  </div>
 </div>
 
-<div v-click class="mt-8 text-2xl font-bold">
-You could build it. But should you?
-</div>
-
+<DeckFooter />
 <!--
 Use this as the concrete "batteries" story.
 The package does not make the feature free, but it lets a mature design and Django's conventions do substantial work.
@@ -318,30 +353,33 @@ Timing: 12:00–14:00
 
 ---
 layout: center
-class: text-center
+class: content-slide text-center
 ---
 
 # Batteries have a shelf life.
 
-<div class="mt-10 flex justify-center items-center gap-5 text-2xl">
-  <div class="rounded-xl border border-main px-6 py-4">django-fsm</div>
+<div class="mt-10 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-5 text-2xl">
+  <div class="rounded-xl border border-main bg-white/85 px-6 py-4 shadow-sm">django-fsm</div>
   <div class="text-3xl opacity-50">→</div>
-  <div class="rounded-xl border border-main px-6 py-4">maintenance slows</div>
+  <div class="rounded-xl border border-main bg-white/85 px-6 py-4 shadow-sm">maintenance slows</div>
   <div class="text-3xl opacity-50">→</div>
-  <div class="rounded-xl border border-main px-6 py-4">django-fsm-2</div>
+  <div class="rounded-xl border border-main bg-white/85 px-6 py-4 shadow-sm">django-fsm-2</div>
 </div>
 
-<div class="grid grid-cols-2 gap-10 mt-12 text-left">
-  <div>
+<div class="comparison-grid mt-12 text-left">
+  <div class="rounded-2xl border border-main bg-white p-6 shadow-sm">
+    <div class="mb-4 h-1.5 w-18 rounded-full bg-green-500"></div>
     <div class="text-xl font-bold text-green-500">What you bought</div>
     <div class="mt-2 opacity-80">A mature design, saved time, and community experience.</div>
   </div>
-  <div>
+  <div class="rounded-2xl border border-main bg-white p-6 shadow-sm">
+    <div class="mb-4 h-1.5 w-18 rounded-full bg-amber-500"></div>
     <div class="text-xl font-bold text-amber-500">What you still own</div>
     <div class="mt-2 opacity-80">Compatibility, upgrades, security, and a contingency plan.</div>
   </div>
 </div>
 
+<DeckFooter />
 <!--
 Tell the nuanced dependency story: maintainers move on, forks happen, communities can recover projects.
 Options are wait, contribute, fork, replace, or vendor.
@@ -352,8 +390,12 @@ Timing: 14:00–16:00
 -->
 
 ---
+class: content-slide
+---
 
 # Build, buy, or vendor?
+
+<div class="diagram-panel">
 
 ```mermaid {theme: 'neutral', scale: 0.8}
 flowchart LR
@@ -369,10 +411,13 @@ flowchart LR
     B --> O
 ```
 
-<div v-click class="mt-4 text-center text-xl">
+</div>
+
+<div class="mt-4 text-center text-xl">
 AI can lower implementation cost. It does not erase ownership.
 </div>
 
+<DeckFooter />
 <!--
 Podcast-style exchange:
 - AI makes it easier to understand nine files, patch for a new Django version, or build a tailored feature.
@@ -383,13 +428,17 @@ Timing: 16:00–18:00
 -->
 
 ---
-layout: center
-class: text-center
+class: section-divider no-deck-footer
 ---
+
+<div class="section-number">02</div>
+<div class="section-kicker">THE WORKLOAD</div>
 
 # Async?
 
-<div v-click class="mt-14 text-5xl font-bold">
+## Start with what the application actually does.
+
+<div class="mt-14 text-5xl font-bold">
 Do you actually need it?
 </div>
 
@@ -400,11 +449,14 @@ Timing: 18:00–18:30
 -->
 
 ---
+class: content-slide
+---
 
 # Async is a workload property
 
-<div class="grid grid-cols-2 gap-10 mt-8">
-  <div class="rounded-xl border border-green-500/50 p-6">
+<div class="comparison-grid mt-8">
+  <section class="deck-card">
+    <div class="mb-4 h-1.5 w-18 rounded-full bg-green-500"></div>
     <div class="text-2xl font-bold text-green-500">Often valuable</div>
     <ul class="mt-5 text-xl leading-9">
       <li>Many concurrent I/O waits</li>
@@ -412,8 +464,9 @@ Timing: 18:00–18:30
       <li>WebSockets and long-lived connections</li>
       <li>A known high-concurrency hot path</li>
     </ul>
-  </div>
-  <div class="rounded-xl border border-amber-500/50 p-6">
+  </section>
+  <section class="deck-card">
+    <div class="mb-4 h-1.5 w-18 rounded-full bg-amber-500"></div>
     <div class="text-2xl font-bold text-amber-500">Not magic</div>
     <ul class="mt-5 text-xl leading-9">
       <li>CPU-bound work</li>
@@ -421,13 +474,14 @@ Timing: 18:00–18:30
       <li>Database-bound requests</li>
       <li>“It sounds faster”</li>
     </ul>
-  </div>
+  </section>
 </div>
 
-<div v-click class="mt-8 text-center text-2xl">
+<div class="mt-8 text-center text-2xl">
 The whole request path matters—not just <code>async def</code>.
 </div>
 
+<DeckFooter />
 <!--
 Most applications do not benefit merely because everything is declared async.
 Discuss complexity: debugging, blocking libraries, ORM boundaries, and operational behavior.
@@ -439,10 +493,12 @@ Timing: 18:30–21:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # Maybe only one part is special.
+
+<div class="diagram-panel mt-6 text-left">
 
 ```mermaid {theme: 'neutral', scale: 0.82}
 flowchart LR
@@ -454,10 +510,13 @@ flowchart LR
     F -. shared domain or APIs .-> D
 ```
 
+</div>
+
 <div class="mt-5 text-xl opacity-80">
 A monolith plus one focused service can be a feature—not a failure.
 </div>
 
+<DeckFooter />
 <!--
 Use the transcript's examples: a timeline, chat/WebSocket system, or endpoint wrapping many internal APIs may deserve separate treatment. Password settings and admin workflows may not.
 
@@ -467,17 +526,19 @@ Timing: 21:00–22:00
 -->
 
 ---
-layout: center
-class: text-center
+class: section-divider no-deck-footer
 ---
 
-# ⚠️ All benchmarks are biased.
+<div class="section-number">03</div>
+<div class="section-kicker">THE EVIDENCE</div>
+
+# All benchmarks are biased.
 
 <div class="mt-10 text-3xl opacity-80">
 Including ours.
 </div>
 
-<div v-click class="mt-12 text-xl">
+<div class="mt-12 text-xl">
 A benchmark measures a workload, an implementation, and an environment.
 <br>It does not measure your application.
 </div>
@@ -489,19 +550,21 @@ Timing: 22:00–22:45
 -->
 
 ---
+class: content-slide
+---
 
 # Our benchmark contract
 
-<div class="grid grid-cols-2 gap-x-12 gap-y-4 mt-6 text-xl">
-  <div v-click>✓ Equivalent behavior and validation</div>
-  <div v-click>✓ Identical data and query shape</div>
-  <div v-click>✓ Pinned versions and server config</div>
-  <div v-click>✓ Warm-up + repeated measured runs</div>
-  <div v-click>✓ Multiple concurrency levels</div>
-  <div v-click>✓ Raw results in the repository</div>
+<div class="checklist-grid mt-6 text-xl">
+  <div><span class="mr-2 text-green-600">✓</span>Equivalent behavior and validation</div>
+  <div><span class="mr-2 text-green-600">✓</span>Identical data and query shape</div>
+  <div><span class="mr-2 text-green-600">✓</span>Pinned versions and server config</div>
+  <div><span class="mr-2 text-green-600">✓</span>Warm-up + repeated measured runs</div>
+  <div><span class="mr-2 text-green-600">✓</span>Multiple concurrency levels</div>
+  <div><span class="mr-2 text-green-600">✓</span>Raw results in the repository</div>
 </div>
 
-<div v-click class="mt-12 text-center text-2xl font-bold">
+<div class="mt-6 text-center text-2xl font-bold">
 Throughput + latency + errors + resources
 </div>
 
@@ -509,6 +572,7 @@ Throughput + latency + errors + resources
 Not one heroic requests-per-second number.
 </div>
 
+<DeckFooter />
 <!--
 DRAFT: This is a promise. Do not retain any bullet the final benchmark process does not satisfy.
 
@@ -518,13 +582,14 @@ Timing: 22:45–24:00
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-14
+class: content-slide
 ---
 
 # Scenario A: ZIP typeahead
 
-<div class="mt-6 text-6xl">📮 → ⚡</div>
+<div class="comparison-grid mt-6">
+  <div class="deck-card">
+    <div class="text-6xl">📮 → ⚡</div>
 
 ```http
 GET /zip-codes?q=462
@@ -537,18 +602,19 @@ GET /zip-codes?q=462
 ]
 ```
 
-::right::
-
-<div class="mt-16 text-xl leading-9">
-
-- Redis-backed lookup
-- Real external I/O, no ORM
-- Same response and validation
-- Lower and higher concurrency
-- Isolate framework + I/O behavior
-
+  </div>
+  <div class="deck-card text-xl leading-9">
+    <ul>
+      <li>Redis-backed lookup</li>
+      <li>Real external I/O, no ORM</li>
+      <li>Same response and validation</li>
+      <li>Lower and higher concurrency</li>
+      <li>Isolate framework + I/O behavior</li>
+    </ul>
+  </div>
 </div>
 
+<DeckFooter />
 <!--
 Working concurrency idea from the transcript: roughly 20 vs. 200 concurrent connections. Choose exact stages only after trial runs and document what "20" and "200" mean in Artillery.
 
@@ -558,54 +624,14 @@ Timing: 24:00–25:30
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-12
+class: content-slide benchmark-slide
 ---
 
-# Scenario B: Zellit
+# Results: Redis workload
 
-## Zillow meets Reddit
+<img src="/images/benchmark-zip.svg" alt="ZIP workload latency chart comparing FastAPI and Django mean, p50, p95, and p99 latency" />
 
-<div class="mt-5 text-6xl">🏠 💬 ⬆️</div>
-
-<div class="mt-8 text-xl opacity-80">
-Synthetic real estate listings with opinions.
-</div>
-
-::right::
-
-<div class="mt-8 text-xl leading-9">
-
-- PostgreSQL reads
-- ZIP-code demographics
-- Homes joined to photos
-- Optional votes and comments
-- Deterministic generated data
-- Realistic connection management
-
-</div>
-
-<div class="mt-8 rounded-lg bg-amber-500/15 border border-amber-500/40 p-3 text-center">
-Name still needs Frank's vote: <strong>Zellit?</strong> <strong>Zealot?</strong>
-</div>
-
-<!--
-The transcript brainstormed a Zillow/Reddit cross and landed on a name phonetically, but not a stable spelling.
-
-Decide whether votes/comments are part of the measured endpoint or just visual flavor. Keep the measured query understandable: demographics plus homes and photos is enough.
-
-DRAFT: Define schema, indexes, row counts, pool settings, seeds, and exact response shape before implementation.
-
-Timing: 25:30–27:00
--->
-
----
-layout: center
-class: text-center
----
-
-<img src="/images/benchmark-zip.svg" class="w-full h-full object-contain" alt="ZIP workload latency chart comparing FastAPI and Django mean, p50, p95, and p99 latency" />
-
+<DeckFooter />
 <!--
 The chart uses the best successful five-minute sustained run for each framework, as requested:
 - FastAPI: fastapi-zip-20260823T194420Z-sustained-1
@@ -617,12 +643,52 @@ Timing: 27:00–29:00
 -->
 
 ---
-layout: center
-class: text-center
+class: content-slide
 ---
 
-<img src="/images/benchmark-zellit.svg" class="w-full h-full object-contain" alt="Warmed Zellit PostgreSQL workload latency chart comparing FastAPI and Django mean, p50, p95, and p99 latency" />
+# Scenario B: Zellit
 
+<div class="comparison-grid mt-6">
+  <section class="deck-card">
+    <h2>Zillow meets Reddit</h2>
+    <div class="mt-5 text-6xl">🏠 💬 ⬆️</div>
+    <div class="mt-8 text-xl opacity-80">Synthetic real estate listings with opinions.</div>
+  </section>
+  <section class="deck-card text-xl leading-9">
+    <ul>
+      <li>PostgreSQL reads</li>
+      <li>ZIP-code demographics</li>
+      <li>Homes joined to photos</li>
+      <li>Optional votes and comments</li>
+      <li>Deterministic generated data</li>
+      <li>Realistic connection management</li>
+    </ul>
+    <div class="mt-8 rounded-lg bg-amber-500/15 border border-amber-500/40 p-3 text-center">
+    Name still needs Frank's vote: <strong>Zellit?</strong> <strong>Zealot?</strong>
+    </div>
+  </section>
+</div>
+
+<DeckFooter />
+<!--
+The transcript brainstormed a Zillow/Reddit cross and landed on a name phonetically, but not a stable spelling.
+
+Decide whether votes/comments are part of the measured endpoint or just visual flavor. Keep the measured query understandable: demographics plus homes and photos is enough.
+
+DRAFT: Define schema, indexes, row counts, pool settings, seeds, and exact response shape before implementation.
+
+Timing: 25:30–27:00
+-->
+
+---
+class: content-slide benchmark-slide
+---
+
+# Results: PostgreSQL workload
+
+<img src="/images/benchmark-zellit.svg" alt="Warmed Zellit PostgreSQL workload latency chart comparing FastAPI and Django mean, p50, p95, and p99 latency" />
+
+<DeckFooter />
 <!--
 The chart averages the two measured trials per framework from warmed ABBA series 20260824T182812Z.
 Each trial used four replicas, one worker per replica, twenty DB connections per replica, a 30-second warm-up, and then 18,000 measured requests over 60 seconds. Every request succeeded.
@@ -634,21 +700,22 @@ Timing: 29:00–31:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # Faster is not the same as better.
 
-<div class="grid grid-cols-3 gap-6 mt-12 text-xl">
-  <div class="rounded-xl border border-main p-5">Does the difference survive a realistic workload?</div>
-  <div class="rounded-xl border border-main p-5">Does it matter at your traffic level?</div>
-  <div class="rounded-xl border border-main p-5">What do you give up to get it?</div>
+<div class="deck-cards mt-12 text-xl text-left">
+  <div class="deck-card">Does the difference survive a realistic workload?</div>
+  <div class="deck-card">Does it matter at your traffic level?</div>
+  <div class="deck-card">What do you give up to get it?</div>
 </div>
 
-<div v-click class="mt-12 text-2xl font-bold">
+<div class="mt-12 text-2xl font-bold">
 Measure the bottleneck you actually have.
 </div>
 
+<DeckFooter />
 <!--
 Possible discussion: FastAPI may provide more concurrency headroom out of the box in some workloads, but a modest difference may not outweigh Django's ecosystem and team familiarity.
 
@@ -658,26 +725,29 @@ Timing: 31:00–32:00
 -->
 
 ---
+class: content-slide
+---
 
 # Easy deploy paths
 
-<div class="grid grid-cols-2 gap-10 mt-10">
-  <div class="rounded-xl border border-main p-6">
+<div class="comparison-grid mt-10">
+  <section class="deck-card">
     <div class="text-2xl font-bold">FastAPI Cloud</div>
-    <div class="mt-7 font-mono text-xl rounded bg-black/20 p-4">fastapi deploy</div>
+    <div class="dark-code-panel mt-7 p-4 font-mono text-xl">fastapi deploy</div>
     <div class="mt-6 opacity-75">A framework-aligned happy path.</div>
-  </div>
-  <div class="rounded-xl border border-main p-6">
+  </section>
+  <section class="deck-card">
     <div class="text-2xl font-bold">Django Simple Deploy</div>
-    <div class="mt-7 font-mono text-xl rounded bg-black/20 p-4">python manage.py simple_deploy</div>
+    <div class="dark-code-panel mt-7 p-4 font-mono text-xl">python manage.py simple_deploy</div>
     <div class="mt-6 opacity-75">A Django path across supported platforms.</div>
-  </div>
+  </section>
 </div>
 
-<div v-click class="mt-8 text-center text-xl">
+<div class="mt-8 text-center text-xl">
 Compare capabilities—not command length alone.
 </div>
 
+<DeckFooter />
 <!--
 Calvin: show the compelling one-command FastAPI Cloud experience from the calendar app.
 Frank: respond with the current Django Simple Deploy story and established platform paths.
@@ -689,8 +759,12 @@ Timing: 32:00–35:00
 -->
 
 ---
+class: content-slide
+---
 
 # In production, the shapes converge
+
+<div class="diagram-panel mt-4">
 
 ```mermaid {theme: 'neutral', scale: 0.78}
 flowchart LR
@@ -705,10 +779,13 @@ flowchart LR
     C2 --> O
 ```
 
+</div>
+
 <div class="mt-3 text-center text-xl opacity-80">
 Containers, migrations, pooling, secrets, observability, backups, incidents…
 </div>
 
+<DeckFooter />
 <!--
 At Kubernetes/production scale, replacing the app label from Django to FastAPI does not remove the surrounding operational system.
 Use the SCAFF full-stack architecture diagram instead if it is clearer and permission is confirmed.
@@ -717,31 +794,31 @@ Timing: 35:00–37:00
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-12
+class: recommendation-slide
 ---
 
 # Lean toward Django + Ninja when…
 
-<div class="mt-8 text-xl leading-10">
+<section class="deck-card text-xl leading-10">
+  <ul>
+    <li>The team already knows Django</li>
+    <li>An existing Django product needs an API</li>
+    <li>Admin, auth, permissions, or workflows matter</li>
+    <li>Scope is likely to grow beyond “just an API”</li>
+    <li>Reusable apps create meaningful leverage</li>
+    <li>A small speed difference would not change the business</li>
+  </ul>
+</section>
 
-- The team already knows Django
-- An existing Django product needs an API
-- Admin, auth, permissions, or workflows matter
-- Scope is likely to grow beyond “just an API”
-- Reusable apps create meaningful leverage
-- A small speed difference would not change the business
+<section class="deck-card text-center">
+  <div class="mt-8 text-7xl">🔋</div>
 
-</div>
+  <div class="mt-8 text-2xl font-bold">
+  Optimize for total product work.
+  </div>
+</section>
 
-::right::
-
-<div class="mt-20 text-7xl text-center">🔋</div>
-
-<div class="mt-8 text-center text-2xl font-bold">
-Optimize for total product work.
-</div>
-
+<DeckFooter />
 <!--
 This is a heuristic, not a checklist that mechanically produces an answer.
 
@@ -749,31 +826,31 @@ Timing: 37:00–38:30
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-12
+class: recommendation-slide
 ---
 
 # Lean toward FastAPI when…
 
-<div class="mt-8 text-xl leading-10">
+<section class="deck-card text-xl leading-10">
+  <ul>
+    <li>The service is focused and API-only</li>
+    <li>Scope is intentionally bounded</li>
+    <li>Concurrent I/O is central to the workload</li>
+    <li>The team wants a composable stack</li>
+    <li>Unused full-stack surface area is a real concern</li>
+    <li>Its tooling or deploy path removes material friction</li>
+  </ul>
+</section>
 
-- The service is focused and API-only
-- Scope is intentionally bounded
-- Concurrent I/O is central to the workload
-- The team wants a composable stack
-- Unused full-stack surface area is a real concern
-- Its tooling or deploy path removes material friction
+<section class="deck-card text-center">
+  <div class="mt-8 text-7xl">⚡</div>
 
-</div>
+  <div class="mt-8 text-2xl font-bold">
+  Optimize for the service you actually need.
+  </div>
+</section>
 
-::right::
-
-<div class="mt-20 text-7xl text-center">⚡</div>
-
-<div class="mt-8 text-center text-2xl font-bold">
-Optimize for the service you actually need.
-</div>
-
+<DeckFooter />
 <!--
 Mention legitimate concerns separately from trivia. A few megabytes in a container is rarely decisive; unnecessary complexity, middleware, or security surface can be.
 
@@ -782,12 +859,12 @@ Timing: 38:30–40:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # You can use both.
 
-<div class="mt-10 text-3xl">
+<div class="deck-card mt-10 text-3xl">
   Django for the product
   <span class="mx-4 opacity-50">+</span>
   FastAPI for a specialized service
@@ -797,10 +874,11 @@ class: text-center
 Or Django + Ninja everywhere. Or FastAPI everywhere.
 </div>
 
-<div v-click class="mt-10 text-2xl font-bold">
+<div class="mt-10 text-2xl font-bold">
 Complexity must earn its keep.
 </div>
 
+<DeckFooter />
 <!--
 Mix-and-match is an option, not the automatic compromise.
 A second framework adds deployment, observability, authentication, data ownership, and staffing complexity. Extract a service only when its constraints justify that cost.
@@ -810,22 +888,23 @@ Timing: 40:00–41:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # Our answer
 
-<div class="mt-10 grid grid-cols-2 gap-8 text-2xl">
-  <div v-click class="rounded-xl border border-main p-5">Value team knowledge.</div>
-  <div v-click class="rounded-xl border border-main p-5">Measure your workload.</div>
-  <div v-click class="rounded-xl border border-main p-5">Buy batteries for leverage.</div>
-  <div v-click class="rounded-xl border border-main p-5">Build when ownership is worth it.</div>
+<div class="comparison-grid mt-10 text-2xl text-left">
+  <div class="deck-card">Value team knowledge.</div>
+  <div class="deck-card">Measure your workload.</div>
+  <div class="deck-card">Buy batteries for leverage.</div>
+  <div class="deck-card">Build when ownership is worth it.</div>
 </div>
 
-<div v-click class="mt-10 text-3xl font-bold">
+<div class="mt-10 text-3xl font-bold">
 Choose constraints—not hype.
 </div>
 
+<DeckFooter />
 <!--
 Restate the opening: there is no wrong answer independent of context.
 Both communities are active and neither framework is going away. Verify and cite project-health claims in the final deck/repository.
@@ -835,23 +914,19 @@ Timing: 41:00–43:00
 
 ---
 layout: center
-class: text-center
+class: deck-title no-deck-footer
 ---
+
+<BrandLockup size="lg" />
 
 # Thank you
 
-<div class="mt-8 text-2xl">
-Questions, code, methodology, raw results, and references
-</div>
+<div class="deck-subtitle">Questions, code, methodology, raw results, and references</div>
 
-<div class="mt-10 font-mono text-lg">
-  github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed
-</div>
+<div class="deck-speakers"><strong>Calvin Hendryx-Parker</strong><span>·</span><strong>Frank Wiles</strong></div>
+<div class="deck-repo">github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed</div>
 
-<div class="mt-12 text-xl opacity-80">
-Calvin Hendryx-Parker &nbsp;·&nbsp; Frank Wiles
-</div>
-
+<RepositoryQr />
 <!--
 DRAFT: Add the final QR code, contact details, and deployed slide URL.
 Leave approximately two minutes for the close/transition or questions depending on conference format.
