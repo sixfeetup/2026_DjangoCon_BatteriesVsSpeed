@@ -1,11 +1,10 @@
 ---
-theme: seriph
-background: https://cover.sli.dev
+theme: default
 title: "Django vs. FastAPI: Batteries vs. Speed"
 info: |
   ## Django vs. FastAPI: Batteries vs. Speed
   A pragmatic DjangoCon conversation about framework trade-offs.
-class: text-center
+class: deck-title no-deck-footer
 drawings:
   persist: false
 transition: slide-left
@@ -14,21 +13,15 @@ duration: 45min
 mdc: true
 ---
 
-# Django vs. FastAPI
+<BrandLockup size="lg" />
+
+# Django <span class="framework-accent">vs.</span> FastAPI
 
 ## Batteries vs. Speed
 
-<div class="mt-8 text-2xl">
-  Calvin Hendryx-Parker &nbsp;·&nbsp; Frank Wiles
-</div>
-
-<div class="mt-12 text-lg opacity-80">
-  Slides, examples, and eventually reproducible benchmarks
-</div>
-
-<div class="mt-2 font-mono text-sm">
-  github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed
-</div>
+<div class="deck-subtitle">A pragmatic conversation about framework trade-offs</div>
+<div class="deck-speakers"><strong>Calvin Hendryx-Parker</strong><span>·</span><strong>Frank Wiles</strong></div>
+<div class="deck-repo">github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed</div>
 
 <!--
 DRAFT: Add a large QR code for the repository.
@@ -41,7 +34,7 @@ Timing: 0:00–2:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # There is no wrong answer here.
@@ -50,6 +43,7 @@ class: text-center
 There are only trade-offs that fit your context—or do not.
 </div>
 
+<DeckFooter />
 <!--
 Set the tone immediately: this is not a framework cage match.
 Both projects are healthy choices. We are comparing constraints, not declaring a universal winner.
@@ -80,6 +74,7 @@ layoutClass: gap-12
 - Uses Django where the boring parts matter
 - Here to defend batteries—and question their cost
 
+<DeckFooter />
 <!--
 DRAFT: Frank and Calvin should replace these bullets with the bios they want spoken.
 Avoid reading biographies. Establish why each person has useful experience with the trade-offs.
@@ -104,6 +99,7 @@ class: text-center
 DRF still matters—but it is not the only Django API story.
 </div>
 
+<DeckFooter />
 <!--
 Say this explicitly so the audience does not feel that the title promised bare Django vs. FastAPI and the talk quietly substituted Ninja.
 
@@ -138,6 +134,7 @@ Timing: 4:00–5:30
 Framework choice is an organizational decision, too.
 </div>
 
+<DeckFooter />
 <!--
 Examples from the transcript:
 - A focused internal service with three endpoints and bounded scope may be a natural FastAPI project.
@@ -158,6 +155,7 @@ class: text-center
 A minimal API in FastAPI…
 </div>
 
+<DeckFooter />
 <!--
 Set up the code-comparison bit. Frank can prompt Calvin to show the FastAPI version.
 
@@ -186,6 +184,7 @@ def update_item(item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
 ```
 
+<DeckFooter />
 <!--
 Walk only the shape: imports, app, schema, decorated operation.
 Do not teach FastAPI syntax—the audience can inspect the repository.
@@ -216,6 +215,7 @@ def update_item(request, item_id: int, item: Item):
 Wait… did it change?
 </div>
 
+<DeckFooter />
 <!--
 Use the transcript's planned joke: one presenter claims the slide did not move.
 Then highlight the actual differences: imports, app/API naming, Schema/BaseModel, and Ninja's request argument.
@@ -227,7 +227,7 @@ Timing through this slide: 9:30
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # Syntax is not the decision.
@@ -236,6 +236,7 @@ class: text-center
 The interesting differences emerge as the application grows.
 </div>
 
+<DeckFooter />
 <!--
 Transition from code to batteries and ecosystem.
 Both provide type-driven schemas, validation, routing, and generated API documentation. The meaningful divergence is architecture and what can be added later.
@@ -244,22 +245,13 @@ Timing: 9:30–10:00
 -->
 
 ---
+class: section-divider no-deck-footer
+---
 
-# Different batteries. Different opinions.
-
-| Concern | Django + Ninja | FastAPI |
-|---|---|---|
-| Validation & OpenAPI | Ninja | Built in |
-| Data layer | Django ORM convention | Choose your own |
-| Admin | Django admin | Choose/build an option |
-| Auth & permissions | Django ecosystem | API-oriented tools + choices |
-| WebSockets | ASGI/Channels or a service | Starlette/FastAPI support |
-| Reusable app ecosystem | Deep, convention-driven | Younger, more composable |
-
-<div class="mt-6 text-sm opacity-60">
-Working comparison for discussion—not a scorecard.
-</div>
-
+<div class="section-number">01</div>
+<div class="section-kicker">THE COMPARISON</div>
+# Different batteries.
+## Different opinions.
 <!--
 DRAFT / FACT CHECK: Verify every row and decide whether DRF deserves a third column.
 Potential matrix rows for appendix or repo: templates, background jobs, testing, migrations, ORM async behavior, docs customization, deployment.
@@ -306,6 +298,7 @@ A small integration can provide:
 You could build it. But should you?
 </div>
 
+<DeckFooter />
 <!--
 Use this as the concrete "batteries" story.
 The package does not make the feature free, but it lets a mature design and Django's conventions do substantial work.
@@ -342,6 +335,7 @@ class: text-center
   </div>
 </div>
 
+<DeckFooter />
 <!--
 Tell the nuanced dependency story: maintainers move on, forks happen, communities can recover projects.
 Options are wait, contribute, fork, replace, or vendor.
@@ -373,6 +367,7 @@ flowchart LR
 AI can lower implementation cost. It does not erase ownership.
 </div>
 
+<DeckFooter />
 <!--
 Podcast-style exchange:
 - AI makes it easier to understand nine files, patch for a new Django version, or build a tailored feature.
@@ -384,15 +379,13 @@ Timing: 16:00–18:00
 
 ---
 layout: center
-class: text-center
+class: section-divider no-deck-footer
 ---
 
+<div class="section-number">02</div>
+<div class="section-kicker">THE WORKLOAD</div>
 # Async?
-
-<div v-click class="mt-14 text-5xl font-bold">
-Do you actually need it?
-</div>
-
+## Start with what the application actually does.
 <!--
 Keep this visually spare so the audience listens to the conversation.
 
@@ -428,6 +421,7 @@ Timing: 18:00–18:30
 The whole request path matters—not just <code>async def</code>.
 </div>
 
+<DeckFooter />
 <!--
 Most applications do not benefit merely because everything is declared async.
 Discuss complexity: debugging, blocking libraries, ORM boundaries, and operational behavior.
@@ -439,7 +433,7 @@ Timing: 18:30–21:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # Maybe only one part is special.
@@ -458,6 +452,7 @@ flowchart LR
 A monolith plus one focused service can be a feature—not a failure.
 </div>
 
+<DeckFooter />
 <!--
 Use the transcript's examples: a timeline, chat/WebSocket system, or endpoint wrapping many internal APIs may deserve separate treatment. Password settings and admin workflows may not.
 
@@ -468,20 +463,13 @@ Timing: 21:00–22:00
 
 ---
 layout: center
-class: text-center
+class: section-divider no-deck-footer
 ---
 
-# ⚠️ All benchmarks are biased.
-
-<div class="mt-10 text-3xl opacity-80">
-Including ours.
-</div>
-
-<div v-click class="mt-12 text-xl">
-A benchmark measures a workload, an implementation, and an environment.
-<br>It does not measure your application.
-</div>
-
+<div class="section-number">03</div>
+<div class="section-kicker">THE EVIDENCE</div>
+# All benchmarks are biased.
+## Including ours.
 <!--
 This line was central to the planning conversation. Establish humility before showing any chart.
 
@@ -509,6 +497,7 @@ Throughput + latency + errors + resources
 Not one heroic requests-per-second number.
 </div>
 
+<DeckFooter />
 <!--
 DRAFT: This is a promise. Do not retain any bullet the final benchmark process does not satisfy.
 
@@ -549,6 +538,7 @@ GET /zip-codes?q=462
 
 </div>
 
+<DeckFooter />
 <!--
 Working concurrency idea from the transcript: roughly 20 vs. 200 concurrent connections. Choose exact stages only after trial runs and document what "20" and "200" mean in Artillery.
 
@@ -589,6 +579,7 @@ Synthetic real estate listings with opinions.
 Name still needs Frank's vote: <strong>Zellit?</strong> <strong>Zealot?</strong>
 </div>
 
+<DeckFooter />
 <!--
 The transcript brainstormed a Zillow/Reddit cross and landed on a name phonetically, but not a stable spelling.
 
@@ -615,6 +606,7 @@ Timing: 25:30–27:00
 Describe what happened—not what we expected to happen.
 </div>
 
+<DeckFooter />
 <!--
 Do not invent results. Replace with a chart generated from committed benchmark artifacts.
 Include run ID and environment in a readable footer.
@@ -640,6 +632,7 @@ Timing: 27:00–29:00
 When the database dominates, how much framework is left to measure?
 </div>
 
+<DeckFooter />
 <!--
 Do not invent results. Replace with a chart generated from committed benchmark artifacts.
 Discuss connection pools and server worker configuration explicitly.
@@ -649,7 +642,7 @@ Timing: 29:00–31:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # Faster is not the same as better.
@@ -664,6 +657,7 @@ class: text-center
 Measure the bottleneck you actually have.
 </div>
 
+<DeckFooter />
 <!--
 Possible discussion: FastAPI may provide more concurrency headroom out of the box in some workloads, but a modest difference may not outweigh Django's ecosystem and team familiarity.
 
@@ -693,6 +687,7 @@ Timing: 31:00–32:00
 Compare capabilities—not command length alone.
 </div>
 
+<DeckFooter />
 <!--
 Calvin: show the compelling one-command FastAPI Cloud experience from the calendar app.
 Frank: respond with the current Django Simple Deploy story and established platform paths.
@@ -724,6 +719,7 @@ flowchart LR
 Containers, migrations, pooling, secrets, observability, backups, incidents…
 </div>
 
+<DeckFooter />
 <!--
 At Kubernetes/production scale, replacing the app label from Django to FastAPI does not remove the surrounding operational system.
 Use the SCAFF full-stack architecture diagram instead if it is clearer and permission is confirmed.
@@ -757,6 +753,7 @@ layoutClass: gap-12
 Optimize for total product work.
 </div>
 
+<DeckFooter />
 <!--
 This is a heuristic, not a checklist that mechanically produces an answer.
 
@@ -789,6 +786,7 @@ layoutClass: gap-12
 Optimize for the service you actually need.
 </div>
 
+<DeckFooter />
 <!--
 Mention legitimate concerns separately from trivia. A few megabytes in a container is rarely decisive; unnecessary complexity, middleware, or security surface can be.
 
@@ -797,7 +795,7 @@ Timing: 38:30–40:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # You can use both.
@@ -816,6 +814,7 @@ Or Django + Ninja everywhere. Or FastAPI everywhere.
 Complexity must earn its keep.
 </div>
 
+<DeckFooter />
 <!--
 Mix-and-match is an option, not the automatic compromise.
 A second framework adds deployment, observability, authentication, data ownership, and staffing complexity. Extract a service only when its constraints justify that cost.
@@ -825,7 +824,7 @@ Timing: 40:00–41:00
 
 ---
 layout: center
-class: text-center
+class: statement-slide
 ---
 
 # Our answer
@@ -841,6 +840,7 @@ class: text-center
 Choose constraints—not hype.
 </div>
 
+<DeckFooter />
 <!--
 Restate the opening: there is no wrong answer independent of context.
 Both communities are active and neither framework is going away. Verify and cite project-health claims in the final deck/repository.
@@ -850,23 +850,17 @@ Timing: 41:00–43:00
 
 ---
 layout: center
-class: text-center
+class: deck-title no-deck-footer
 ---
+
+<BrandLockup size="lg" />
 
 # Thank you
 
-<div class="mt-8 text-2xl">
-Questions, code, methodology, raw results, and references
-</div>
+## Questions, code, methodology, raw results, and references
 
-<div class="mt-10 font-mono text-lg">
-  github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed
-</div>
-
-<div class="mt-12 text-xl opacity-80">
-Calvin Hendryx-Parker &nbsp;·&nbsp; Frank Wiles
-</div>
-
+<div class="deck-speakers"><strong>Calvin Hendryx-Parker</strong><span>·</span><strong>Frank Wiles</strong></div>
+<div class="deck-repo">github.com/sixfeetup/2026_DjangoCon_BatteriesVsSpeed</div>
 <!--
 DRAFT: Add the final QR code, contact details, and deployed slide URL.
 Leave approximately two minutes for the close/transition or questions depending on conference format.

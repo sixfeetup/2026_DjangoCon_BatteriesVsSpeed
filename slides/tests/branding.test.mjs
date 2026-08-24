@@ -73,3 +73,12 @@ test('brand components use local assets and accessible names', async () => {
   const footer = await read('components/DeckFooter.vue')
   assert.match(footer, /currentPage/)
 })
+
+test('deck uses the light semantic shell and local co-brand lockups', async () => {
+  const deck = await read('slides.md')
+  assert.match(deck, /^---[\s\S]*theme: default/m)
+  assert.doesNotMatch(deck, /background:\s*https?:\/\//)
+  assert.ok((deck.match(/<BrandLockup/g) ?? []).length >= 2)
+  assert.ok((deck.match(/class:.*deck-title/g) ?? []).length >= 2)
+  assert.ok((deck.match(/class:.*section-divider/g) ?? []).length >= 3)
+})
