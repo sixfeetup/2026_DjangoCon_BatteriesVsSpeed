@@ -155,11 +155,8 @@ layout: center
 class: statement-slide content-slide
 ---
 
-# Did the slide change?
+# A minimal API in FastAPI…
 
-<div class="mt-12 text-2xl opacity-75">
-A minimal API in FastAPI…
-</div>
 
 <DeckFooter />
 <!--
@@ -178,7 +175,7 @@ class: content-slide code-slide
   <div class="dark-code-panel">
     <header><span class="framework-label" style="--framework-accent: #f8f7fb">FastAPI</span></header>
 
-```python {1-2|4|7-10|12-14|all}
+```python
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -215,7 +212,7 @@ class: content-slide code-slide
   <div class="dark-code-panel">
     <header><span class="framework-label" style="--framework-accent: #f8f7fb">Django Ninja</span></header>
 
-```python {1|3|6-9|11-13|all}
+```python
 from ninja import NinjaAPI, Schema
 
 api = NinjaAPI()
