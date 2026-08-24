@@ -447,11 +447,14 @@ Timing: 18:00–18:30
 -->
 
 ---
+class: content-slide
+---
 
 # Async is a workload property
 
-<div class="grid grid-cols-2 gap-10 mt-8">
-  <div class="rounded-xl border border-green-500/50 p-6">
+<div class="comparison-grid mt-8">
+  <section class="deck-card">
+    <div class="mb-4 h-1.5 w-18 rounded-full bg-green-500"></div>
     <div class="text-2xl font-bold text-green-500">Often valuable</div>
     <ul class="mt-5 text-xl leading-9">
       <li>Many concurrent I/O waits</li>
@@ -459,8 +462,9 @@ Timing: 18:00–18:30
       <li>WebSockets and long-lived connections</li>
       <li>A known high-concurrency hot path</li>
     </ul>
-  </div>
-  <div class="rounded-xl border border-amber-500/50 p-6">
+  </section>
+  <section class="deck-card">
+    <div class="mb-4 h-1.5 w-18 rounded-full bg-amber-500"></div>
     <div class="text-2xl font-bold text-amber-500">Not magic</div>
     <ul class="mt-5 text-xl leading-9">
       <li>CPU-bound work</li>
@@ -468,7 +472,7 @@ Timing: 18:00–18:30
       <li>Database-bound requests</li>
       <li>“It sounds faster”</li>
     </ul>
-  </div>
+  </section>
 </div>
 
 <div v-click class="mt-8 text-center text-2xl">
@@ -492,6 +496,8 @@ class: statement-slide
 
 # Maybe only one part is special.
 
+<div class="diagram-panel mt-6 text-left">
+
 ```mermaid {theme: 'neutral', scale: 0.82}
 flowchart LR
     C[Clients] --> D[Django product]
@@ -501,6 +507,8 @@ flowchart LR
     F --> R[(Redis / external APIs)]
     F -. shared domain or APIs .-> D
 ```
+
+</div>
 
 <div class="mt-5 text-xl opacity-80">
 A monolith plus one focused service can be a feature—not a failure.
@@ -540,16 +548,18 @@ Timing: 22:00–22:45
 -->
 
 ---
+class: content-slide
+---
 
 # Our benchmark contract
 
-<div class="grid grid-cols-2 gap-x-12 gap-y-4 mt-6 text-xl">
-  <div v-click>✓ Equivalent behavior and validation</div>
-  <div v-click>✓ Identical data and query shape</div>
-  <div v-click>✓ Pinned versions and server config</div>
-  <div v-click>✓ Warm-up + repeated measured runs</div>
-  <div v-click>✓ Multiple concurrency levels</div>
-  <div v-click>✓ Raw results in the repository</div>
+<div class="checklist-grid mt-6 text-xl">
+  <div v-click><span class="mr-2 text-green-600">✓</span>Equivalent behavior and validation</div>
+  <div v-click><span class="mr-2 text-green-600">✓</span>Identical data and query shape</div>
+  <div v-click><span class="mr-2 text-green-600">✓</span>Pinned versions and server config</div>
+  <div v-click><span class="mr-2 text-green-600">✓</span>Warm-up + repeated measured runs</div>
+  <div v-click><span class="mr-2 text-green-600">✓</span>Multiple concurrency levels</div>
+  <div v-click><span class="mr-2 text-green-600">✓</span>Raw results in the repository</div>
 </div>
 
 <div v-click class="mt-12 text-center text-2xl font-bold">
@@ -570,13 +580,14 @@ Timing: 22:45–24:00
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-14
+class: content-slide
 ---
 
 # Scenario A: ZIP typeahead
 
-<div class="mt-6 text-6xl">📮 → ⚡</div>
+<div class="comparison-grid mt-6">
+  <div class="deck-card">
+    <div class="text-6xl">📮 → ⚡</div>
 
 ```http
 GET /zip-codes?q=462
@@ -589,16 +600,16 @@ GET /zip-codes?q=462
 ]
 ```
 
-::right::
-
-<div class="mt-16 text-xl leading-9">
-
-- Redis-backed lookup
-- Real external I/O, no ORM
-- Same response and validation
-- Lower and higher concurrency
-- Isolate framework + I/O behavior
-
+  </div>
+  <div class="deck-card text-xl leading-9">
+    <ul>
+      <li>Redis-backed lookup</li>
+      <li>Real external I/O, no ORM</li>
+      <li>Same response and validation</li>
+      <li>Lower and higher concurrency</li>
+      <li>Isolate framework + I/O behavior</li>
+    </ul>
+  </div>
 </div>
 
 <DeckFooter />
@@ -611,35 +622,34 @@ Timing: 24:00–25:30
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-12
+class: content-slide
 ---
 
 # Scenario B: Zellit
 
-## Zillow meets Reddit
+<div class="comparison-grid mt-6">
+  <section class="deck-card">
+    <h2>Zillow meets Reddit</h2>
 
-<div class="mt-5 text-6xl">🏠 💬 ⬆️</div>
+    <div class="mt-5 text-6xl">🏠 💬 ⬆️</div>
 
-<div class="mt-8 text-xl opacity-80">
-Synthetic real estate listings with opinions.
-</div>
-
-::right::
-
-<div class="mt-8 text-xl leading-9">
-
-- PostgreSQL reads
-- ZIP-code demographics
-- Homes joined to photos
-- Optional votes and comments
-- Deterministic generated data
-- Realistic connection management
-
-</div>
-
-<div class="mt-8 rounded-lg bg-amber-500/15 border border-amber-500/40 p-3 text-center">
-Name still needs Frank's vote: <strong>Zellit?</strong> <strong>Zealot?</strong>
+    <div class="mt-8 text-xl opacity-80">
+    Synthetic real estate listings with opinions.
+    </div>
+  </section>
+  <section class="deck-card text-xl leading-9">
+    <ul>
+      <li>PostgreSQL reads</li>
+      <li>ZIP-code demographics</li>
+      <li>Homes joined to photos</li>
+      <li>Optional votes and comments</li>
+      <li>Deterministic generated data</li>
+      <li>Realistic connection management</li>
+    </ul>
+    <div class="mt-8 rounded-lg bg-amber-500/15 border border-amber-500/40 p-3 text-center">
+    Name still needs Frank's vote: <strong>Zellit?</strong> <strong>Zealot?</strong>
+    </div>
+  </section>
 </div>
 
 <DeckFooter />
@@ -654,11 +664,13 @@ Timing: 25:30–27:00
 -->
 
 ---
+class: content-slide
+---
 
-# Results: Redis workload
+<h1>Results: Redis workload</h1>
 
-<div class="mt-8 h-62 rounded-xl border-2 border-dashed border-main flex items-center justify-center">
-  <div class="text-center">
+<div class="result-placeholder mt-8 h-62" style="border-image: linear-gradient(90deg, var(--sixie-purple), var(--revsys-blue)) 1;">
+  <div>
     <div class="text-4xl opacity-50">CHART PLACEHOLDER</div>
     <div class="mt-4 text-xl opacity-60">p50 · p95 · p99 · throughput · errors</div>
     <div class="mt-2 opacity-50">lower and higher concurrency</div>
@@ -680,11 +692,13 @@ Timing: 27:00–29:00
 -->
 
 ---
+class: content-slide
+---
 
-# Results: PostgreSQL workload
+<h1>Results: PostgreSQL workload</h1>
 
-<div class="mt-8 h-62 rounded-xl border-2 border-dashed border-main flex items-center justify-center">
-  <div class="text-center">
+<div class="result-placeholder mt-8 h-62" style="border-image: linear-gradient(90deg, var(--sixie-purple), var(--revsys-blue)) 1;">
+  <div>
     <div class="text-4xl opacity-50">CHART PLACEHOLDER</div>
     <div class="mt-4 text-xl opacity-60">p50 · p95 · p99 · throughput · errors</div>
     <div class="mt-2 opacity-50">same data, queries, and response</div>
@@ -710,10 +724,10 @@ class: statement-slide
 
 # Faster is not the same as better.
 
-<div class="grid grid-cols-3 gap-6 mt-12 text-xl">
-  <div class="rounded-xl border border-main p-5">Does the difference survive a realistic workload?</div>
-  <div class="rounded-xl border border-main p-5">Does it matter at your traffic level?</div>
-  <div class="rounded-xl border border-main p-5">What do you give up to get it?</div>
+<div class="deck-cards mt-12 text-xl text-left">
+  <div class="deck-card">Does the difference survive a realistic workload?</div>
+  <div class="deck-card">Does it matter at your traffic level?</div>
+  <div class="deck-card">What do you give up to get it?</div>
 </div>
 
 <div v-click class="mt-12 text-2xl font-bold">
@@ -730,20 +744,22 @@ Timing: 31:00–32:00
 -->
 
 ---
+class: content-slide
+---
 
 # Easy deploy paths
 
-<div class="grid grid-cols-2 gap-10 mt-10">
-  <div class="rounded-xl border border-main p-6">
+<div class="comparison-grid mt-10">
+  <section class="deck-card">
     <div class="text-2xl font-bold">FastAPI Cloud</div>
-    <div class="mt-7 font-mono text-xl rounded bg-black/20 p-4">fastapi deploy</div>
+    <div class="dark-code-panel mt-7 p-4 font-mono text-xl">fastapi deploy</div>
     <div class="mt-6 opacity-75">A framework-aligned happy path.</div>
-  </div>
-  <div class="rounded-xl border border-main p-6">
+  </section>
+  <section class="deck-card">
     <div class="text-2xl font-bold">Django Simple Deploy</div>
-    <div class="mt-7 font-mono text-xl rounded bg-black/20 p-4">python manage.py simple_deploy</div>
+    <div class="dark-code-panel mt-7 p-4 font-mono text-xl">python manage.py simple_deploy</div>
     <div class="mt-6 opacity-75">A Django path across supported platforms.</div>
-  </div>
+  </section>
 </div>
 
 <div v-click class="mt-8 text-center text-xl">
@@ -762,8 +778,12 @@ Timing: 32:00–35:00
 -->
 
 ---
+class: content-slide
+---
 
 # In production, the shapes converge
+
+<div class="diagram-panel mt-4">
 
 ```mermaid {theme: 'neutral', scale: 0.78}
 flowchart LR
@@ -778,6 +798,8 @@ flowchart LR
     C2 --> O
 ```
 
+</div>
+
 <div class="mt-3 text-center text-xl opacity-80">
 Containers, migrations, pooling, secrets, observability, backups, incidents…
 </div>
@@ -791,30 +813,29 @@ Timing: 35:00–37:00
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-12
+class: recommendation-slide
 ---
 
-# Lean toward Django + Ninja when…
+<h1 class="col-span-2">Lean toward Django + Ninja when…</h1>
 
-<div class="mt-8 text-xl leading-10">
+<section class="deck-card text-xl leading-10">
+  <ul>
+    <li>The team already knows Django</li>
+    <li>An existing Django product needs an API</li>
+    <li>Admin, auth, permissions, or workflows matter</li>
+    <li>Scope is likely to grow beyond “just an API”</li>
+    <li>Reusable apps create meaningful leverage</li>
+    <li>A small speed difference would not change the business</li>
+  </ul>
+</section>
 
-- The team already knows Django
-- An existing Django product needs an API
-- Admin, auth, permissions, or workflows matter
-- Scope is likely to grow beyond “just an API”
-- Reusable apps create meaningful leverage
-- A small speed difference would not change the business
+<section class="deck-card text-center">
+  <div class="mt-8 text-7xl">🔋</div>
 
-</div>
-
-::right::
-
-<div class="mt-20 text-7xl text-center">🔋</div>
-
-<div class="mt-8 text-center text-2xl font-bold">
-Optimize for total product work.
-</div>
+  <div class="mt-8 text-2xl font-bold">
+  Optimize for total product work.
+  </div>
+</section>
 
 <DeckFooter />
 <!--
@@ -824,30 +845,29 @@ Timing: 37:00–38:30
 -->
 
 ---
-layout: two-cols
-layoutClass: gap-12
+class: recommendation-slide
 ---
 
-# Lean toward FastAPI when…
+<h1 class="col-span-2">Lean toward FastAPI when…</h1>
 
-<div class="mt-8 text-xl leading-10">
+<section class="deck-card text-xl leading-10">
+  <ul>
+    <li>The service is focused and API-only</li>
+    <li>Scope is intentionally bounded</li>
+    <li>Concurrent I/O is central to the workload</li>
+    <li>The team wants a composable stack</li>
+    <li>Unused full-stack surface area is a real concern</li>
+    <li>Its tooling or deploy path removes material friction</li>
+  </ul>
+</section>
 
-- The service is focused and API-only
-- Scope is intentionally bounded
-- Concurrent I/O is central to the workload
-- The team wants a composable stack
-- Unused full-stack surface area is a real concern
-- Its tooling or deploy path removes material friction
+<section class="deck-card text-center">
+  <div class="mt-8 text-7xl">⚡</div>
 
-</div>
-
-::right::
-
-<div class="mt-20 text-7xl text-center">⚡</div>
-
-<div class="mt-8 text-center text-2xl font-bold">
-Optimize for the service you actually need.
-</div>
+  <div class="mt-8 text-2xl font-bold">
+  Optimize for the service you actually need.
+  </div>
+</section>
 
 <DeckFooter />
 <!--
@@ -863,7 +883,7 @@ class: statement-slide
 
 # You can use both.
 
-<div class="mt-10 text-3xl">
+<div class="deck-card mt-10 text-3xl">
   Django for the product
   <span class="mx-4 opacity-50">+</span>
   FastAPI for a specialized service
@@ -892,11 +912,11 @@ class: statement-slide
 
 # Our answer
 
-<div class="mt-10 grid grid-cols-2 gap-8 text-2xl">
-  <div v-click class="rounded-xl border border-main p-5">Value team knowledge.</div>
-  <div v-click class="rounded-xl border border-main p-5">Measure your workload.</div>
-  <div v-click class="rounded-xl border border-main p-5">Buy batteries for leverage.</div>
-  <div v-click class="rounded-xl border border-main p-5">Build when ownership is worth it.</div>
+<div class="comparison-grid mt-10 text-2xl text-left">
+  <div v-click class="deck-card">Value team knowledge.</div>
+  <div v-click class="deck-card">Measure your workload.</div>
+  <div v-click class="deck-card">Buy batteries for leverage.</div>
+  <div v-click class="deck-card">Build when ownership is worth it.</div>
 </div>
 
 <div v-click class="mt-10 text-3xl font-bold">

@@ -102,3 +102,15 @@ test('thank-you slide uses the title subtitle hierarchy', async () => {
   const deck = await read('slides.md')
   assert.match(deck, /# Thank you\s+<div class="deck-subtitle">Questions, code, methodology, raw results, and references<\/div>/)
 })
+
+test('every slide has a semantic family and branding remains framework-neutral', async () => {
+  const deck = await read('slides.md')
+  const slideCount = (deck.match(/^# (?!#)/gm) ?? []).length
+  assert.equal(slideCount, 26)
+  assert.ok((deck.match(/<DeckFooter/g) ?? []).length >= 18)
+  assert.equal((deck.match(/result-placeholder/g) ?? []).length, 2)
+  assert.equal((deck.match(/recommendation-slide/g) ?? []).length, 2)
+  assert.doesNotMatch(deck, /sixie-(purple|indigo)[^\n]*(FastAPI|Django)/i)
+  assert.doesNotMatch(deck, /revsys-(blue|navy)[^\n]*(FastAPI|Django)/i)
+  assert.doesNotMatch(deck, /background:\s*https?:\/\//)
+})
