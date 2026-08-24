@@ -41,7 +41,7 @@ class: statement-slide
 
 # There is no wrong answer here.
 
-<div v-click class="mt-10 text-2xl opacity-80">
+<div class="mt-10 text-2xl opacity-80">
 There are only trade-offs that fit your context—or do not.
 </div>
 
@@ -101,7 +101,7 @@ class: content-slide text-center
   FastAPI
 </div>
 
-<div v-click class="mt-12 text-xl opacity-75">
+<div class="mt-12 text-xl opacity-75">
 DRF still matters—but it is not the only Django API story.
 </div>
 
@@ -138,7 +138,7 @@ class: content-slide
   </div>
 </div>
 
-<div v-click class="mt-10 text-2xl text-center">
+<div class="mt-10 text-2xl text-center">
 Framework choice is an organizational decision, too.
 </div>
 
@@ -334,7 +334,7 @@ action.send(
       <li>reusable queries and relationships</li>
       <li>conventions already tied to Django models</li>
     </ul>
-    <div v-click class="mt-5 text-2xl font-bold">
+    <div class="mt-5 text-2xl font-bold">
       You could build it. But should you?
     </div>
   </div>
@@ -413,7 +413,7 @@ flowchart LR
 
 </div>
 
-<div v-click class="mt-4 text-center text-xl">
+<div class="mt-4 text-center text-xl">
 AI can lower implementation cost. It does not erase ownership.
 </div>
 
@@ -438,7 +438,7 @@ class: section-divider no-deck-footer
 
 ## Start with what the application actually does.
 
-<div v-click class="mt-14 text-5xl font-bold">
+<div class="mt-14 text-5xl font-bold">
 Do you actually need it?
 </div>
 
@@ -477,7 +477,7 @@ class: content-slide
   </section>
 </div>
 
-<div v-click class="mt-8 text-center text-2xl">
+<div class="mt-8 text-center text-2xl">
 The whole request path matters—not just <code>async def</code>.
 </div>
 
@@ -538,7 +538,7 @@ class: section-divider no-deck-footer
 Including ours.
 </div>
 
-<div v-click class="mt-12 text-xl">
+<div class="mt-12 text-xl">
 A benchmark measures a workload, an implementation, and an environment.
 <br>It does not measure your application.
 </div>
@@ -556,15 +556,15 @@ class: content-slide
 # Our benchmark contract
 
 <div class="checklist-grid mt-6 text-xl">
-  <div v-click><span class="mr-2 text-green-600">✓</span>Equivalent behavior and validation</div>
-  <div v-click><span class="mr-2 text-green-600">✓</span>Identical data and query shape</div>
-  <div v-click><span class="mr-2 text-green-600">✓</span>Pinned versions and server config</div>
-  <div v-click><span class="mr-2 text-green-600">✓</span>Warm-up + repeated measured runs</div>
-  <div v-click><span class="mr-2 text-green-600">✓</span>Multiple concurrency levels</div>
-  <div v-click><span class="mr-2 text-green-600">✓</span>Raw results in the repository</div>
+  <div><span class="mr-2 text-green-600">✓</span>Equivalent behavior and validation</div>
+  <div><span class="mr-2 text-green-600">✓</span>Identical data and query shape</div>
+  <div><span class="mr-2 text-green-600">✓</span>Pinned versions and server config</div>
+  <div><span class="mr-2 text-green-600">✓</span>Warm-up + repeated measured runs</div>
+  <div><span class="mr-2 text-green-600">✓</span>Multiple concurrency levels</div>
+  <div><span class="mr-2 text-green-600">✓</span>Raw results in the repository</div>
 </div>
 
-<div v-click class="mt-6 text-center text-2xl font-bold">
+<div class="mt-6 text-center text-2xl font-bold">
 Throughput + latency + errors + resources
 </div>
 
@@ -728,7 +728,7 @@ class: statement-slide
   <div class="deck-card">What do you give up to get it?</div>
 </div>
 
-<div v-click class="mt-12 text-2xl font-bold">
+<div class="mt-12 text-2xl font-bold">
 Measure the bottleneck you actually have.
 </div>
 
@@ -760,7 +760,7 @@ class: content-slide
   </section>
 </div>
 
-<div v-click class="mt-8 text-center text-xl">
+<div class="mt-8 text-center text-xl">
 Compare capabilities—not command length alone.
 </div>
 
@@ -891,7 +891,7 @@ class: statement-slide
 Or Django + Ninja everywhere. Or FastAPI everywhere.
 </div>
 
-<div v-click class="mt-10 text-2xl font-bold">
+<div class="mt-10 text-2xl font-bold">
 Complexity must earn its keep.
 </div>
 
@@ -911,13 +911,13 @@ class: statement-slide
 # Our answer
 
 <div class="comparison-grid mt-10 text-2xl text-left">
-  <div v-click class="deck-card">Value team knowledge.</div>
-  <div v-click class="deck-card">Measure your workload.</div>
-  <div v-click class="deck-card">Buy batteries for leverage.</div>
-  <div v-click class="deck-card">Build when ownership is worth it.</div>
+  <div class="deck-card">Value team knowledge.</div>
+  <div class="deck-card">Measure your workload.</div>
+  <div class="deck-card">Buy batteries for leverage.</div>
+  <div class="deck-card">Build when ownership is worth it.</div>
 </div>
 
-<div v-click class="mt-10 text-3xl font-bold">
+<div class="mt-10 text-3xl font-bold">
 Choose constraints—not hype.
 </div>
 
