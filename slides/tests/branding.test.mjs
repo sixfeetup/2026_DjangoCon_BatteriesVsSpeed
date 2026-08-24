@@ -172,6 +172,20 @@ test('deck uses the light semantic shell and local co-brand lockups', async () =
   assert.ok((deck.match(/class:.*section-divider/g) ?? []).length >= 3)
 })
 
+test('benchmark results immediately follow their demo introductions', async () => {
+  const slides = await parseDeck()
+  const benchmarkHeadings = slides
+    .map(slide => slide.content.match(/^# (.+)$/m)?.[1])
+    .filter(heading => heading && /^(Scenario [AB]:|Results:)/.test(heading))
+
+  assert.deepEqual(benchmarkHeadings, [
+    'Scenario A: ZIP typeahead',
+    'Results: Redis workload',
+    'Scenario B: Zellit',
+    'Results: PostgreSQL workload',
+  ])
+})
+
 test('section dividers preserve original visible content and click directives', async () => {
   const deck = await read('slides.md')
   assert.match(deck, /<div class="section-number">01<\/div>[\s\S]*\| Concern \| Django \+ Ninja \| FastAPI \|[\s\S]*\| Validation & OpenAPI \| Ninja \| Built in \|[\s\S]*\| Reusable app ecosystem \| Deep, convention-driven \| Younger, more composable \|[\s\S]*Working comparison for discussion—not a scorecard\./)

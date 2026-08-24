@@ -627,6 +627,34 @@ Timing: 24:00–25:30
 class: content-slide
 ---
 
+# Results: Redis workload
+
+<div class="result-placeholder mt-8 h-62" style="border-image: linear-gradient(90deg, var(--sixie-purple), var(--revsys-blue)) 1;">
+  <div>
+    <div class="text-4xl opacity-50">CHART PLACEHOLDER</div>
+    <div class="mt-4 text-xl opacity-60">p50 · p95 · p99 · throughput · errors</div>
+    <div class="mt-2 opacity-50">lower and higher concurrency</div>
+  </div>
+</div>
+
+<div class="mt-6 text-center text-xl">
+Describe what happened—not what we expected to happen.
+</div>
+
+<DeckFooter />
+<!--
+Do not invent results. Replace with a chart generated from committed benchmark artifacts.
+Include run ID and environment in a readable footer.
+
+Discuss variance and surprises. If results are effectively tied, that is a useful result.
+
+Timing: 27:00–29:00
+-->
+
+---
+class: content-slide
+---
+
 # Scenario B: Zellit
 
 <div class="comparison-grid mt-6">
@@ -659,34 +687,6 @@ Decide whether votes/comments are part of the measured endpoint or just visual f
 DRAFT: Define schema, indexes, row counts, pool settings, seeds, and exact response shape before implementation.
 
 Timing: 25:30–27:00
--->
-
----
-class: content-slide
----
-
-# Results: Redis workload
-
-<div class="result-placeholder mt-8 h-62" style="border-image: linear-gradient(90deg, var(--sixie-purple), var(--revsys-blue)) 1;">
-  <div>
-    <div class="text-4xl opacity-50">CHART PLACEHOLDER</div>
-    <div class="mt-4 text-xl opacity-60">p50 · p95 · p99 · throughput · errors</div>
-    <div class="mt-2 opacity-50">lower and higher concurrency</div>
-  </div>
-</div>
-
-<div class="mt-6 text-center text-xl">
-Describe what happened—not what we expected to happen.
-</div>
-
-<DeckFooter />
-<!--
-Do not invent results. Replace with a chart generated from committed benchmark artifacts.
-Include run ID and environment in a readable footer.
-
-Discuss variance and surprises. If results are effectively tied, that is a useful result.
-
-Timing: 27:00–29:00
 -->
 
 ---
