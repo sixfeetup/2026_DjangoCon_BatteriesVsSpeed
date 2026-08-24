@@ -120,18 +120,35 @@ test('repository QR component is local and accessible', async () => {
   assert.doesNotMatch(component, /src="https?:\/\//)
 })
 
-test('repository QR appears on both title-family slides', async () => {
+test('repository QR appears exactly twice on title slides without deck footers', async () => {
   const slides = await parseDeck()
-  const titleSlides = slidesWithClass(slides, 'deck-title')
-  assert.equal(titleSlides.length, 2)
-  assert.ok(titleSlides.every(slide => /<RepositoryQr\s*\/>/.test(slide.content)))
+  const qrSlides = slides.filter(slide => /<RepositoryQr\s*\/>/.test(slide.content))
+  const qrInstanceCount = slides.reduce(
+    (total, slide) => total + (slide.content.match(/<RepositoryQr\s*\/>/g) ?? []).length,
+    0,
+  )
+
+  assert.equal(qrInstanceCount, 2)
+  assert.equal(qrSlides.length, 2)
+  assert.ok(qrSlides.every(slide => classTokens(slide).has('deck-title')))
+  assert.ok(qrSlides.every(slide => classTokens(slide).has('no-deck-footer')))
+  assert.ok(qrSlides.every(slide => slide.content.includes(repositoryUrl.replace('https://', ''))))
+  assert.deepEqual(qrSlides, slidesWithClass(slides, 'deck-title'))
   assert.equal(contentClassTokenCount(slides, 'repository-qr'), 0)
 })
 
-test('repository QR styles provide a bottom-right scannable card', async () => {
+test('repository QR styles provide a padded bottom-right scannable card', async () => {
   const css = await read('styles/index.css')
-  assert.match(css, /\.repository-qr\s*\{[^}]*position:\s*absolute;[^}]*right:[^;]+;[^}]*bottom:[^;]+;/s)
+  const cardRule = css.match(/\.repository-qr\s*\{([^}]*)\}/s)
+  assert.ok(cardRule, 'missing repository QR card rule')
+  assert.match(cardRule[1], /position:\s*absolute;/)
+  assert.match(cardRule[1], /right:[^;]+;/)
+  const bottom = cardRule[1].match(/bottom:\s*([\d.]+)rem;/)
+  assert.ok(bottom, 'repository QR bottom offset must use rem')
+  assert.ok(Number(bottom[1]) >= 2.9, 'repository QR must stay within the 2.9rem title padding')
   assert.match(css, /\.repository-qr__image\s*\{[^}]*width:\s*(?:9\.375|10\.625)rem;[^}]*height:\s*(?:9\.375|10\.625)rem;/s)
+  assert.match(css, /\.deck-title \.deck-subtitle\s*\{[^}]*width:\s*fit-content;/s)
+  assert.match(css, /\.deck-title h2 \+ \.deck-subtitle\s*\{[^}]*max-width:[^;]+;/s)
 })
 
 test('brand components use local assets and accessible names', async () => {

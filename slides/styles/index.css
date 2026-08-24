@@ -71,10 +71,12 @@
 .deck-title h1 { max-width: 10.5em; color: var(--deck-ink); font-size: 4.7rem; font-weight: 800; letter-spacing: -0.06em; line-height: 0.9; }
 .title-vs { color: var(--sixie-purple); }
 .deck-subtitle { margin-top: 1rem; color: var(--revsys-navy); font-size: 1.7rem; font-weight: 600; letter-spacing: -0.02em; }
+.deck-title .deck-subtitle { width: fit-content; }
+.deck-title h2 + .deck-subtitle { max-width: 36rem; }
 .deck-speakers { display: flex; width: fit-content; gap: 0.85rem; align-items: center; margin-top: 2rem; color: var(--deck-ink); font-size: 1.18rem; font-weight: 700; }
 .deck-speakers span { color: var(--deck-muted); font-weight: 500; }
 .deck-repo { display: inline-flex; align-items: center; gap: 0.55rem; margin-top: 1rem; padding: 0.45rem 0.75rem; border: 1px solid var(--deck-line); border-radius: 999px; background: rgba(255, 255, 255, 0.72); color: var(--revsys-navy); font-family: 'Roboto Mono', ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; }
-.repository-qr { position: absolute; right: 3.25rem; bottom: 0.75rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.75rem 0.75rem 0.7rem; border: 1px solid var(--deck-line); border-radius: 20px; background: #fff; box-shadow: 0 16px 36px rgba(36, 49, 93, 0.15); }
+.repository-qr { position: absolute; right: 3.25rem; bottom: 2.9rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.75rem 0.75rem 0.7rem; border: 1px solid var(--deck-line); border-radius: 20px; background: #fff; box-shadow: 0 16px 36px rgba(36, 49, 93, 0.15); }
 .repository-qr__image { display: block; width: 9.375rem; height: 9.375rem; }
 .repository-qr__label { color: var(--revsys-navy); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.02em; text-align: center; }
 
