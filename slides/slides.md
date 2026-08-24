@@ -7,7 +7,7 @@ info: |
 class: deck-title no-deck-footer
 drawings:
   persist: false
-transition: slide-left
+transition: none
 comark: true
 duration: 45min
 mdc: true
@@ -235,7 +235,7 @@ def update_item(request, item_id: int, item: Item):
   </div>
 </div>
 
-<div v-click class="absolute right-16 bottom-10 text-2xl rotate--3">
+<div v-click class="absolute right-16 bottom-16 text-2xl rotate--3">
 Wait… did it change?
 </div>
 
@@ -274,7 +274,9 @@ class: section-divider no-deck-footer
 
 <div class="section-number">01</div>
 <div class="section-kicker">THE COMPARISON</div>
+
 # Different batteries.
+
 ## Different opinions.
 
 <div class="comparison-table mt-6 [&_tbody_tr:nth-child(even)_td]:!bg-[rgba(81,148,252,0.06)]">
@@ -333,7 +335,7 @@ action.send(
       <li>reusable queries and relationships</li>
       <li>conventions already tied to Django models</li>
     </ul>
-    <div v-click class="mt-8 text-2xl font-bold">
+    <div v-click class="mt-5 text-2xl font-bold">
       You could build it. But should you?
     </div>
   </div>
@@ -427,13 +429,14 @@ Timing: 16:00–18:00
 -->
 
 ---
-layout: center
 class: section-divider no-deck-footer
 ---
 
 <div class="section-number">02</div>
 <div class="section-kicker">THE WORKLOAD</div>
+
 # Async?
+
 ## Start with what the application actually does.
 
 <div v-click class="mt-14 text-5xl font-bold">
@@ -524,12 +527,12 @@ Timing: 21:00–22:00
 -->
 
 ---
-layout: center
 class: section-divider no-deck-footer
 ---
 
 <div class="section-number">03</div>
 <div class="section-kicker">THE EVIDENCE</div>
+
 # All benchmarks are biased.
 
 <div class="mt-10 text-3xl opacity-80">
@@ -630,12 +633,8 @@ class: content-slide
 <div class="comparison-grid mt-6">
   <section class="deck-card">
     <h2>Zillow meets Reddit</h2>
-
     <div class="mt-5 text-6xl">🏠 💬 ⬆️</div>
-
-    <div class="mt-8 text-xl opacity-80">
-    Synthetic real estate listings with opinions.
-    </div>
+    <div class="mt-8 text-xl opacity-80">Synthetic real estate listings with opinions.</div>
   </section>
   <section class="deck-card text-xl leading-9">
     <ul>
