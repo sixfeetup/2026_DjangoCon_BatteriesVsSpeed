@@ -663,9 +663,6 @@ class: content-slide
       <li>Deterministic generated data</li>
       <li>Realistic connection management</li>
     </ul>
-    <div class="mt-8 rounded-lg bg-amber-500/15 border border-amber-500/40 p-3 text-center">
-    Name still needs Frank's vote: <strong>Zellit?</strong> <strong>Zealot?</strong>
-    </div>
   </section>
 </div>
 
