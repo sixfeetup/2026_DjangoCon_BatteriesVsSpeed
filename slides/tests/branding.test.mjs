@@ -186,24 +186,25 @@ test('benchmark results immediately follow their demo introductions', async () =
   ])
 })
 
-test('only slide 8 keeps a progressive reveal build', async () => {
+test('selected slides use progressive reveals', async () => {
   const slides = await parseDeck()
   const buildOccurrences = slides.flatMap(slide => (
     [...slide.content.matchAll(/\bv-click\b/g)].map(() => slide)
   ))
   const deckContent = slides.map(slide => slide.content).join('\n')
 
-  assert.equal(buildOccurrences.length, 1)
-  assert.equal(buildOccurrences[0].index + 1, 8)
+  assert.deepEqual(buildOccurrences.map(slide => slide.index + 1), [8, 14, 17])
   assert.match(buildOccurrences[0].content, /v-click[^>]*>\s*Wait… did it change\?\s*</)
+  assert.match(buildOccurrences[1].content, /v-click[^>]*>\s*Do you actually need it\?\s*</)
+  assert.match(buildOccurrences[2].content, /v-click[^>]*>\s*Including ours\.\s*</)
   assert.doesNotMatch(deckContent, /\bv-(?:after|clicks)\b/)
 })
 
-test('section dividers preserve original visible content', async () => {
+test('section dividers preserve intended content and reveals', async () => {
   const deck = await read('slides.md')
-  assert.match(deck, /<div class="section-number">01<\/div>[\s\S]*\| Concern \| Django \+ Ninja \| FastAPI \|[\s\S]*\| Validation & OpenAPI \| Ninja \| Built in \|[\s\S]*\| Reusable app ecosystem \| Deep, convention-driven \| Younger, more composable \|[\s\S]*Working comparison for discussion—not a scorecard\./)
-  assert.match(deck, /<div class="section-number">02<\/div>[\s\S]*<div class="mt-14 text-5xl font-bold">\s*Do you actually need it\?\s*<\/div>/)
-  assert.match(deck, /<div class="section-number">03<\/div>[\s\S]*<div class="mt-10 text-3xl opacity-80">\s*Including ours\.\s*<\/div>[\s\S]*<div class="mt-12 text-xl">\s*A benchmark measures a workload, an implementation, and an environment\.\s*<br>It does not measure your application\.\s*<\/div>/)
+  assert.match(deck, /<div class="section-number">01<\/div>[\s\S]*\| Concern \| Django \+ Ninja \| FastAPI \|[\s\S]*\| Validation & OpenAPI \| Ninja \| Built in \|[\s\S]*\| Reusable app ecosystem \| Deep, convention-driven \| Younger, more composable \|[\s\S]*<\/div>\s*<!--\s*Not a scorecard!!/)
+  assert.match(deck, /<div class="section-number">02<\/div>[\s\S]*<div v-click class="mt-14 text-5xl font-bold">\s*Do you actually need it\?\s*<\/div>/)
+  assert.match(deck, /<div class="section-number">03<\/div>[\s\S]*<div v-click class="mt-10 text-3xl opacity-80">\s*Including ours\.\s*<\/div>\s*<!--[\s\S]*A benchmark measures a workload, an implementation, and an environment\.[\s\S]*It does not measure your application\./)
 })
 
 test('comparison half uses frontmatter families and class-token card checks', async () => {

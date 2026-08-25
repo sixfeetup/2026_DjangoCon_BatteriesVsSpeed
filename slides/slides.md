@@ -291,13 +291,8 @@ class: section-divider no-deck-footer
 
 </div>
 
-<div class="mt-6 text-sm opacity-60">
-Working comparison for discussion—not a scorecard.
-</div>
-
 <!--
-DRAFT / FACT CHECK: Verify every row and decide whether DRF deserves a third column.
-Potential matrix rows for appendix or repo: templates, background jobs, testing, migrations, ORM async behavior, docs customization, deployment.
+Not a scorecard!!
 
 The key argument is not that FastAPI has no batteries. It has batteries selected for its API flow. Django's shared ORM and application conventions make deeper reusable applications possible.
 
@@ -438,7 +433,7 @@ class: section-divider no-deck-footer
 
 ## Start with what the application actually does.
 
-<div class="mt-14 text-5xl font-bold">
+<div v-click class="mt-14 text-5xl font-bold">
 Do you actually need it?
 </div>
 
@@ -513,7 +508,7 @@ flowchart LR
 </div>
 
 <div class="mt-5 text-xl opacity-80">
-A monolith plus one focused service can be a feature—not a failure.
+A monolith plus one focused service can be a feature
 </div>
 
 <DeckFooter />
@@ -534,17 +529,17 @@ class: section-divider no-deck-footer
 
 # All benchmarks are biased.
 
-<div class="mt-10 text-3xl opacity-80">
+<div v-click class="mt-10 text-3xl opacity-80">
 Including ours.
 </div>
 
-<div class="mt-12 text-xl">
-A benchmark measures a workload, an implementation, and an environment.
-<br>It does not measure your application.
-</div>
 
 <!--
 This line was central to the planning conversation. Establish humility before showing any chart.
+
+A benchmark measures a workload, an implementation, and an environment.
+
+It does not measure your application.
 
 Timing: 22:00–22:45
 -->
